@@ -758,6 +758,43 @@ namespace OpenBrush.Multiplayer
             State = ConnectionState.ERROR;
         }
 
+        public void SetAllMixedReality(bool ar, float amount = 1f)
+        {
+            if (m_Manager is LanManager lan)
+            {
+                lan.SetAllMixedReality(ar, amount);
+            }
+        }
+
+        public void SetPlayerMixedReality(int playerId, bool ar, float amount = 1f)
+        {
+            if (m_Manager is LanManager lan)
+            {
+                lan.SetPlayerMixedReality(playerId, ar, amount);
+            }
+        }
+
+        public void ReportLocalMixedRealityState(bool ar, float amount)
+        {
+            if (m_Manager is LanManager lan)
+            {
+                lan.ReportLocalMixedRealityState(ar, amount);
+            }
+        }
+
+        public bool GetPlayerMixedRealityEnabled(int playerId)
+        {
+            return m_Manager is LanManager lan &&
+                lan.GetPlayerMixedRealityEnabled(playerId);
+        }
+
+        public float GetPlayerMixedRealityAmount(int playerId)
+        {
+            return m_Manager is LanManager lan
+                ? lan.GetPlayerMixedRealityAmount(playerId)
+                : 0f;
+        }
+
         public void SyncPrimitiveNow(StencilWidget widget)
         {
             if (m_Manager is LanManager lan)
