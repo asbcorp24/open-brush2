@@ -16,6 +16,7 @@ namespace TiltBrush {
 public class DesktopMultiplayerObserver : MonoBehaviour {
   private const string kDefaultNickname = "Teacher PC";
   private const int kDefaultMaxPlayers = 12;
+  private const float kAutosaveIntervalSeconds = 180f;
 
   private InputField m_RoomInput;
   private InputField m_NicknameInput;
@@ -38,6 +39,7 @@ public class DesktopMultiplayerObserver : MonoBehaviour {
   private Font m_Font;
   private bool m_EventsHooked;
   private float m_NextRefreshTime;
+  private float m_NextAutosaveTime;
 
   [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
   private static void Bootstrap() {
@@ -98,6 +100,13 @@ public class DesktopMultiplayerObserver : MonoBehaviour {
       m_NextRefreshTime = Time.unscaledTime + 1f;
       RefreshUi();
     }
+
+    var manager = MultiplayerManager.m_Instance;
+    if (manager != null && manager.State == ConnectionState.IN_ROOM &&
+        manager.IsUserRoomOwner() && Time.unscaledTime >= m_NextAutosaveTime) {
+      m_NextAutosaveTime = Time.unscaledTime + kAutosaveIntervalSeconds;
+      AutoSaveSharedSketch();
+    }
   }
 
   private void HookEvents() {
@@ -149,7 +158,12 @@ public class DesktopMultiplayerObserver : MonoBehaviour {
 
   public async void CreateRoom() {
     GenerateNewRoomCode();
+    SetStatus("Starting classroom...");
     await JoinOrCreateCurrentRoom();
+  }
+
+  public void StartClass() {
+    CreateRoom();
   }
 
   public async void JoinRoom() {
@@ -212,7 +226,8 @@ public class DesktopMultiplayerObserver : MonoBehaviour {
       return;
     }
 
-    SetStatus("Room " + room + " — observing live");
+    m_NextAutosaveTime = Time.unscaledTime + kAutosaveIntervalSeconds;
+    SetStatus("Classroom " + room + " started — VIVE headsets can auto-join");
     RefreshUi();
   }
 
@@ -427,7 +442,10 @@ public class DesktopMultiplayerObserver : MonoBehaviour {
 
       string name = string.IsNullOrWhiteSpace(player.Nickname)
           ? "Player " + player.PlayerId : player.Nickname;
-      var label = CreateLabel(row.transform, name, 14, new Vector2(0, -4), new Vector2(210, 30));
+      int ping = manager.GetLanPingMilliseconds(player.PlayerId);
+      string quality = manager.GetLanConnectionQuality(player.PlayerId);
+      string network = ping >= 0 ? " • " + ping + " ms • " + quality : " • connecting";
+      var label = CreateLabel(row.transform, name + network, 13, new Vector2(0, -4), new Vector2(210, 30));
       label.alignment = TextAnchor.MiddleLeft;
 
       int id = player.PlayerId;
@@ -512,8 +530,8 @@ public class DesktopMultiplayerObserver : MonoBehaviour {
     m_NicknameInput = CreateInput(panel.transform, new Vector2(388, -86),
         new Vector2(330, 34), kDefaultNickname);
 
-    m_CreateButton = CreateButton(panel.transform, "Create room",
-        new Vector2(18, -136), new Vector2(170, 38), CreateRoom);
+    m_CreateButton = CreateButton(panel.transform, "START CLASS",
+        new Vector2(18, -136), new Vector2(170, 38), StartClass);
     m_JoinButton = CreateButton(panel.transform, "Join room",
         new Vector2(198, -136), new Vector2(170, 38), JoinRoom);
     m_LeaveButton = CreateButton(panel.transform, "Leave",
@@ -552,7 +570,7 @@ public class DesktopMultiplayerObserver : MonoBehaviour {
     m_PlayerRowsRoot = rows.transform;
 
     var hint = CreateLabel(panel.transform,
-        "F2 — hide/show panel. The 3D view remains live behind this window.",
+        "F2 — hide/show panel. Autosave every 3 min. VIVE headsets auto-join over Wi-Fi.",
         12, new Vector2(18, -618), new Vector2(700, 22));
     hint.color = new Color(1f, 1f, 1f, 0.6f);
   }
