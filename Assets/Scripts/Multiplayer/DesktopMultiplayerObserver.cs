@@ -73,11 +73,11 @@ public class DesktopMultiplayerObserver : MonoBehaviour {
     var manager = MultiplayerManager.m_Instance;
     if (manager.State == ConnectionState.INITIALIZED ||
         manager.State == ConnectionState.DISCONNECTED) {
-      SetStatus("Connecting to Photon lobby...");
+      SetStatus("Starting LAN lobby...");
       var task = manager.Connect();
       yield return new WaitUntil(() => task.IsCompleted);
       if (task.IsFaulted || !task.Result) {
-        SetStatus("Photon connection failed: " + (manager.LastError ?? "unknown error"));
+        SetStatus("LAN startup failed: " + (manager.LastError ?? "unknown error"));
       }
     }
   }
