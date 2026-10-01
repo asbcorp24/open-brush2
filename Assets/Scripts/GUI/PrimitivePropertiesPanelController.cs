@@ -7,6 +7,9 @@ using UnityEngine;
 namespace TiltBrush {
 
 public class PrimitivePropertiesPanelController : MonoBehaviour {
+  private static readonly float[] kSizeStepsMeters = { 0.01f, 0.05f, 0.10f };
+  private static int s_SizeStepIndex = 2;
+
   private static readonly Color[] kPalette = {
     Color.white,
     new Color(0.25f, 0.65f, 1f, 1f),
@@ -29,6 +32,7 @@ public class PrimitivePropertiesPanelController : MonoBehaviour {
     (PrimitivePropertyAction.ColorNext, "Next color"),
     (PrimitivePropertyAction.AlphaNext, "Transparency"),
     (PrimitivePropertyAction.ToggleWireframe, "Wireframe"),
+    (PrimitivePropertyAction.SizeStepNext, "Size step"),
   };
 
   public void Configure() {
@@ -123,11 +127,17 @@ public class PrimitivePropertiesPanelController : MonoBehaviour {
       case PrimitivePropertyAction.ToggleWireframe:
         ToggleWireframe(widget);
         break;
+      case PrimitivePropertyAction.SizeStepNext:
+        s_SizeStepIndex = (s_SizeStepIndex + 1) % kSizeStepsMeters.Length;
+        OutputWindowScript.Error("Primitive size step: " +
+            Mathf.RoundToInt(kSizeStepsMeters[s_SizeStepIndex] * 100f) + " cm");
+        break;
     }
   }
 
   private static void Resize(StencilWidget widget, int axis, int direction) {
-    float step = 0.1f * App.METERS_TO_UNITS / Mathf.Max(0.001f, App.Scene.Pose.scale);
+    float step = kSizeStepsMeters[s_SizeStepIndex] * App.METERS_TO_UNITS /
+        Mathf.Max(0.001f, App.Scene.Pose.scale);
     Vector3 extents = widget.Extents;
     extents[axis] = Mathf.Max(step, extents[axis] + direction * step);
 
@@ -140,7 +150,8 @@ public class PrimitivePropertiesPanelController : MonoBehaviour {
     float step = SelectionManager.m_Instance != null
         ? SelectionManager.m_Instance.SnappingGridSize : 0f;
     if (step <= 0.0001f) {
-      step = 0.1f * App.METERS_TO_UNITS / Mathf.Max(0.001f, App.Scene.Pose.scale);
+      step = kSizeStepsMeters[s_SizeStepIndex] * App.METERS_TO_UNITS /
+          Mathf.Max(0.001f, App.Scene.Pose.scale);
     }
 
     TrTransform xf = widget.LocalTransform;
