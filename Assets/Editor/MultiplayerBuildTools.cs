@@ -59,7 +59,7 @@ public static class MultiplayerBuildTools {
   }
 
   private static bool ValidatePhotonBeforeBuild() {
-    MultiplayerSetupValidator.ValidateSetup();
+    OpenBrush.Multiplayer.Editor.MultiplayerSetupValidator.ValidateSetup();
 
     bool fusionFound = FindType("Fusion.NetworkRunner") != null;
     bool voiceFound = FindType("Photon.Voice.Unity.VoiceConnection") != null;
@@ -69,8 +69,11 @@ public static class MultiplayerBuildTools {
     bool hasVoiceId = App.Config != null &&
         App.Config.PhotonVoiceSecrets != null &&
         !string.IsNullOrWhiteSpace(App.Config.PhotonVoiceSecrets.ClientId);
+    bool standaloneDefine = HasDefine(NamedBuildTarget.Standalone, "MP_PHOTON");
+    bool androidDefine = HasDefine(NamedBuildTarget.Android, "MP_PHOTON");
 
-    if (!fusionFound || !voiceFound || !hasFusionId || !hasVoiceId) {
+    if (!fusionFound || !voiceFound || !hasFusionId || !hasVoiceId ||
+        !standaloneDefine || !androidDefine) {
       EditorUtility.DisplayDialog(
           "Multiplayer build is not ready",
           "Required before build:\n" +
@@ -85,6 +88,16 @@ public static class MultiplayerBuildTools {
     }
 
     return true;
+  }
+
+  private static bool HasDefine(NamedBuildTarget target, string define) {
+    string symbols = PlayerSettings.GetScriptingDefineSymbols(target);
+    foreach (string symbol in symbols.Split(';')) {
+      if (string.Equals(symbol.Trim(), define, System.StringComparison.Ordinal)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private static System.Type FindType(string fullName) {
