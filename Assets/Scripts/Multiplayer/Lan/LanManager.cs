@@ -9,6 +9,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using TiltBrush;
+using OpenBrush.MixedReality;
 using UnityEngine;
 
 namespace OpenBrush.Multiplayer {
@@ -40,6 +41,12 @@ public class LanManager : IDataConnectionHandler {
   }
 
   [Serializable]
+  private class MixedRealityState {
+    public bool ar;
+    public float amount;
+  }
+
+  [Serializable]
   private class Packet {
     public string type;
     public int playerId;
@@ -61,6 +68,8 @@ public class LanManager : IDataConnectionHandler {
     public string UserId;
     public DateTime LastSeenUtc;
     public int PingMs = -1;
+    public bool MrEnabled;
+    public float MrAmount;
     public TcpClient Client;
     public NetworkStream Stream;
     public readonly object WriteLock = new object();
@@ -329,6 +338,13 @@ public class LanManager : IDataConnectionHandler {
           source.PingMs = (int)Math.Max(0, Math.Min(9999, now - packet.sentAt));
         }
         break;
+      case "mr_status":
+        try {
+          var mr = JsonUtility.FromJson<MixedRealityState>(packet.payload);
+          source.MrEnabled = mr != null && mr.ar;
+          source.MrAmount = mr != null ? Mathf.Clamp01(mr.amount) : 0f;
+        } catch { }
+        break;
       case "rig":
         Broadcast(packet, source.Id);
         QueueRig(packet.playerId, packet.payload);
@@ -383,6 +399,9 @@ public class LanManager : IDataConnectionHandler {
       case "player_count":
         m_PlayerCount = packet.playerCount;
         break;
+      case "mr_control":
+        m_MainThread.Enqueue(() => ApplyMixedRealityControl(packet.payload));
+        break;
       case "rig":
         QueueRig(packet.playerId, packet.payload);
         break;
@@ -416,6 +435,24 @@ public class LanManager : IDataConnectionHandler {
       case "colocation":
         m_MainThread.Enqueue(() => ApplyColocation(packet.payload));
         break;
+    }
+  }
+
+  private void ApplyMixedRealityControl(string payload) {
+    try {
+      var state = JsonUtility.FromJson<MixedRealityState>(payload);
+      if (state == null) return;
+
+      var controller = VivePassthroughController.Instance;
+      if (controller == null) return;
+
+      controller.SetMode(state.ar ? ClassroomMrMode.AR : ClassroomMrMode.VR,
+          Mathf.Clamp01(state.amount));
+      ReportLocalMixedRealityState(
+          controller.Mode == ClassroomMrMode.AR,
+          controller.PassthroughAmount);
+    } catch (Exception ex) {
+      Debug.LogWarning("[LAN MR] " + ex.Message);
     }
   }
 
@@ -701,6 +738,43 @@ public class LanManager : IDataConnectionHandler {
       type = "primitive_move",
       payload = JsonUtility.ToJson(state)
     });
+  }
+
+  public void SetAllMixedReality(bool ar, float amount) {
+    if (!m_IsHost || State != ConnectionState.IN_ROOM) return;
+    var state = new MixedRealityState { ar = ar, amount = Mathf.Clamp01(amount) };
+    Broadcast(new Packet { type = "mr_control", payload = JsonUtility.ToJson(state) });
+  }
+
+  public void SetPlayerMixedReality(int playerId, bool ar, float amount) {
+    if (!m_IsHost || State != ConnectionState.IN_ROOM) return;
+    var state = new MixedRealityState { ar = ar, amount = Mathf.Clamp01(amount) };
+    SendToPlayer(playerId, new Packet {
+      type = "mr_control",
+      targetId = playerId,
+      payload = JsonUtility.ToJson(state)
+    });
+  }
+
+  public void ReportLocalMixedRealityState(bool ar, float amount) {
+    if (m_IsHost || State != ConnectionState.IN_ROOM) return;
+    var state = new MixedRealityState { ar = ar, amount = Mathf.Clamp01(amount) };
+    SendToServer(new Packet {
+      type = "mr_status",
+      payload = JsonUtility.ToJson(state)
+    });
+  }
+
+  public bool GetPlayerMixedRealityEnabled(int playerId) {
+    lock (m_PeersLock) {
+      return m_Peers.TryGetValue(playerId, out var peer) && peer.MrEnabled;
+    }
+  }
+
+  public float GetPlayerMixedRealityAmount(int playerId) {
+    lock (m_PeersLock) {
+      return m_Peers.TryGetValue(playerId, out var peer) ? peer.MrAmount : 0f;
+    }
   }
 
   public int GetPingMilliseconds(int playerId) {
