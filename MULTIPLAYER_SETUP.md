@@ -89,7 +89,7 @@ and a late joiner receives the current scene through `MultiplayerSceneSync`.
 
 ## Recommended first test
 
-Use two Quest headsets on the same Wi-Fi network, but keep internet access enabled
+Use two VIVE Focus Vision headsets on the same Wi-Fi network, but keep internet access enabled
 for Photon Cloud. Draw one simple stroke on each device, test undo/redo, then test
 joining the room after several strokes already exist.
 
@@ -109,7 +109,7 @@ are active.
 This branch also adds a dedicated desktop observer workflow.
 
 The Windows observer uses the same Open Brush Main scene and the same Photon room
-as Quest clients, but is built in **Monoscopic** mode. It does not require a VR
+as VIVE Focus Vision clients, but is built in **Monoscopic** mode. It does not require a VR
 headset.
 
 When launched without VR it automatically creates the
@@ -127,7 +127,7 @@ The overlay provides:
 - indication of the current room owner
 
 If **Create room** is pressed, a fresh six-digit code is generated. Photon Fusion's
-Join/Create behavior then creates that room. Quest users enter the same code.
+Join/Create behavior then creates that room. VIVE Focus Vision users enter the same code.
 
 The desktop client receives the same Open Brush command stream and scene snapshot,
 so strokes made by VR participants appear on the PC display.
@@ -142,29 +142,29 @@ Output:
 
 `Builds/Multiplayer/WindowsObserver/OpenBrushObserver.exe`
 
-## Build the Quest application
+## Build the VIVE Focus Vision application
 
 After Photon is configured:
 
-`Open Brush > Multiplayer > Build Quest Multiplayer APK`
+`Open Brush > Multiplayer > Build VIVE Focus Vision Multiplayer APK`
 
 Output:
 
-`Builds/Multiplayer/Quest/OpenBrushMultiplayer.apk`
+`Builds/Multiplayer/VIVE Focus Vision/OpenBrushMultiplayer.apk`
 
-The Quest build uses Android + OpenXR + IL2CPP.
+The VIVE Focus Vision build uses Android + OpenXR + IL2CPP.
 
 # End-to-end test
 
 1. Start `OpenBrushObserver.exe` on the PC.
 2. Press **Create room** and note the six-digit code.
-3. Install `OpenBrushMultiplayer.apk` on Quest A and Quest B.
+3. Install `OpenBrushMultiplayer.apk` on VIVE Focus Vision A and VIVE Focus Vision B.
 4. Open Multiplayer on both headsets.
 5. Enter the same room code and join.
-6. Draw on Quest A.
-7. Verify the stroke appears on Quest B and on the PC.
-8. Draw on Quest B.
-9. Verify the stroke appears on Quest A and on the PC.
+6. Draw on VIVE Focus Vision A.
+7. Verify the stroke appears on VIVE Focus Vision B and on the PC.
+8. Draw on VIVE Focus Vision B.
+9. Verify the stroke appears on VIVE Focus Vision A and on the PC.
 10. Undo on a headset and verify the command is reflected on the other clients.
 11. Join a third client after strokes already exist and verify
     `MultiplayerSceneSync` restores the current scene.
@@ -209,3 +209,36 @@ room owner. Ownership can be transferred to another participant.
 
 The teacher window can be hidden/shown with **F2** while the live 3D scene remains
 visible behind it.
+
+
+# VIVE Focus Vision target
+
+The Android multiplayer build in this branch now targets **HTC VIVE Focus Vision**
+as a standalone headset.
+
+Project changes:
+
+- added `com.htc.upm.vive.openxr` version 2.5.1 from the already configured
+  VIVE scoped registry;
+- keeps Android ARM64 + OpenXR + IL2CPP;
+- build validation now requires the VIVE OpenXR package in addition to Photon;
+- Android output is now:
+  `Builds/Multiplayer/ViveFocusVision/OpenBrushViveFocusVisionMultiplayer.apk`;
+- build menu:
+  `Open Brush > Multiplayer > Build VIVE Focus Vision Multiplayer APK`.
+
+After Unity imports the VIVE package, open:
+
+`Edit > Project Settings > XR Plug-in Management > OpenXR`
+
+and run **Project Validation / Fix All**. Ensure the VIVE XR support/controller
+interaction profile for Focus devices is enabled for Android.
+
+On the headset enable USB debugging:
+
+`Settings > Developer options > USB debugging`
+
+Then the generated APK can be installed directly on VIVE Focus Vision.
+
+The Windows Observer remains unchanged and joins the same Photon room as all
+Focus Vision headsets.
