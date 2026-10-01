@@ -44,6 +44,8 @@ public class LanManager : IDataConnectionHandler {
   private class MixedRealityState {
     public bool ar;
     public float amount;
+    public string provider;
+    public string tracking;
   }
 
   [Serializable]
@@ -70,6 +72,8 @@ public class LanManager : IDataConnectionHandler {
     public int PingMs = -1;
     public bool MrEnabled;
     public float MrAmount;
+    public string MrProvider;
+    public string TrackingMode;
     public TcpClient Client;
     public NetworkStream Stream;
     public readonly object WriteLock = new object();
@@ -343,6 +347,8 @@ public class LanManager : IDataConnectionHandler {
           var mr = JsonUtility.FromJson<MixedRealityState>(packet.payload);
           source.MrEnabled = mr != null && mr.ar;
           source.MrAmount = mr != null ? Mathf.Clamp01(mr.amount) : 0f;
+          source.MrProvider = mr != null ? mr.provider : string.Empty;
+          source.TrackingMode = mr != null ? mr.tracking : string.Empty;
         } catch { }
         break;
       case "rig":
@@ -759,7 +765,12 @@ public class LanManager : IDataConnectionHandler {
 
   public void ReportLocalMixedRealityState(bool ar, float amount) {
     if (m_IsHost || State != ConnectionState.IN_ROOM) return;
-    var state = new MixedRealityState { ar = ar, amount = Mathf.Clamp01(amount) };
+    var state = new MixedRealityState {
+      ar = ar,
+      amount = Mathf.Clamp01(amount),
+      provider = ClassroomMixedReality.ProviderName,
+      tracking = ClassroomMixedReality.TrackingLabel
+    };
     SendToServer(new Packet {
       type = "mr_status",
       payload = JsonUtility.ToJson(state)
@@ -775,6 +786,20 @@ public class LanManager : IDataConnectionHandler {
   public float GetPlayerMixedRealityAmount(int playerId) {
     lock (m_PeersLock) {
       return m_Peers.TryGetValue(playerId, out var peer) ? peer.MrAmount : 0f;
+    }
+  }
+
+  public string GetPlayerMixedRealityProvider(int playerId) {
+    lock (m_PeersLock) {
+      return m_Peers.TryGetValue(playerId, out var peer)
+          ? (peer.MrProvider ?? string.Empty) : string.Empty;
+    }
+  }
+
+  public string GetPlayerTrackingMode(int playerId) {
+    lock (m_PeersLock) {
+      return m_Peers.TryGetValue(playerId, out var peer)
+          ? (peer.TrackingMode ?? string.Empty) : string.Empty;
     }
   }
 
