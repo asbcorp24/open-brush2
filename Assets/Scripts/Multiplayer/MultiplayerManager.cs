@@ -358,7 +358,7 @@ namespace OpenBrush.Multiplayer
         {
             if (!isUserRoomOwner) return;
             GetPlayerById(playerId).m_IsMutedForAll = muted;
-            MultiplayerAudioSourcesManager.m_Instance.SetMuteForPlayer(playerId, muted);
+            MultiplayerAudioSourcesManager.m_Instance?.SetMuteForPlayer(playerId, muted);
             m_Manager.RpcMutePlayer(muted, playerId);
         }
 
@@ -728,6 +728,39 @@ namespace OpenBrush.Multiplayer
         {
             return State == ConnectionState.IN_ROOM;
         }
+
+        public void NotifyLanReconnecting(string reason)
+        {
+            if (m_MultiplayerType != MultiplayerType.Lan) return;
+            LastError = reason;
+            State = ConnectionState.RECONNECTING;
+        }
+
+        public void NotifyLanReconnected()
+        {
+            if (m_MultiplayerType != MultiplayerType.Lan) return;
+            LastError = null;
+            State = ConnectionState.IN_ROOM;
+        }
+
+        public void NotifyLanConnectionFailed(string reason)
+        {
+            if (m_MultiplayerType != MultiplayerType.Lan) return;
+            LastError = reason;
+            State = ConnectionState.ERROR;
+        }
+
+        public int GetLanPingMilliseconds(int playerId)
+        {
+            return m_Manager is LanManager lan ? lan.GetPingMilliseconds(playerId) : -1;
+        }
+
+        public string GetLanConnectionQuality(int playerId)
+        {
+            return m_Manager is LanManager lan ? lan.GetConnectionQuality(playerId) : string.Empty;
+        }
+
+        public bool IsLanMode => m_MultiplayerType == MultiplayerType.Lan;
 
         public bool HasRemotePlayersInRoom()
         {
