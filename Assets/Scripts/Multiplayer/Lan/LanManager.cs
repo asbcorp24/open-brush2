@@ -792,6 +792,18 @@ public class LanManager : IDataConnectionHandler {
       return true;
     }
 
+    if (command is ResizeStencilCommand resize &&
+        resize.Widget is StencilWidget resizedStencil) {
+      var marker = EnsurePrimitiveId(resizedStencil);
+      var state = CapturePrimitiveState(resizedStencil, marker.Id, true);
+      SendRoomPacket(new Packet {
+        type = "primitive_move",
+        payload = JsonUtility.ToJson(state),
+        commandGuid = command.Guid.ToString()
+      });
+      return true;
+    }
+
     if (command is BrushStrokeCommand brush && brush.m_Stroke != null) {
       byte[] bytes = await MultiplayerStrokeSerialization.SerializeAndCompressMemoryListAsync(
           new List<Stroke> { brush.m_Stroke });
@@ -841,6 +853,7 @@ public class LanManager : IDataConnectionHandler {
   private bool TrySendPrimitiveStateAfterUndoRedo(BaseCommand command) {
     StencilWidget widget = null;
     if (command is MoveWidgetCommand move) widget = move.Widget as StencilWidget;
+    else if (command is ResizeStencilCommand resize) widget = resize.Widget;
     else if (command is CreateWidgetCommand create) widget = create.Widget as StencilWidget;
     else if (command is HideWidgetCommand hide) widget = hide.Widget as StencilWidget;
     if (widget == null) return false;
