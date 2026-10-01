@@ -29,6 +29,7 @@ namespace TiltBrush
         public void Configure(StencilType type, string description)
         {
             m_Type = type;
+            m_LocalizedDescription = new UnityEngine.Localization.LocalizedString();
             SetDescriptionText(description);
             gameObject.name = "PanelButton_Primitive_" + type;
         }
