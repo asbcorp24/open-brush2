@@ -137,6 +137,8 @@ public class LanManager : IDataConnectionHandler {
 
       m_ServerClient = new TcpClient();
       m_ServerClient.NoDelay = true;
+      m_ServerClient.ReceiveTimeout = 5000;
+      m_ServerClient.SendTimeout = 5000;
       await m_ServerClient.ConnectAsync(endpoint.Address, endpoint.Port);
       m_ServerStream = m_ServerClient.GetStream();
 
@@ -212,6 +214,8 @@ public class LanManager : IDataConnectionHandler {
       try {
         TcpClient client = await m_Listener.AcceptTcpClientAsync();
         client.NoDelay = true;
+        client.ReceiveTimeout = 5000;
+        client.SendTimeout = 5000;
         _ = Task.Run(() => ReadClientLoop(client, token));
       } catch {
         if (!token.IsCancellationRequested) throw;
@@ -413,6 +417,8 @@ public class LanManager : IDataConnectionHandler {
 
         m_ServerClient = new TcpClient();
         m_ServerClient.NoDelay = true;
+        m_ServerClient.ReceiveTimeout = 5000;
+        m_ServerClient.SendTimeout = 5000;
         await m_ServerClient.ConnectAsync(endpoint.Address, endpoint.Port);
         m_ServerStream = m_ServerClient.GetStream();
 
