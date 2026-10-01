@@ -102,3 +102,81 @@ backend used by this implementation. The actual backend is the code under:
 
 and it is compiled only when `MP_PHOTON` (and Fusion's own generated symbols)
 are active.
+
+
+# Dedicated Windows Observer / Admin client
+
+This branch also adds a dedicated desktop observer workflow.
+
+The Windows observer uses the same Open Brush Main scene and the same Photon room
+as Quest clients, but is built in **Monoscopic** mode. It does not require a VR
+headset.
+
+When launched without VR it automatically creates the
+`DesktopMultiplayerObserver` overlay.
+
+The overlay provides:
+
+- six-digit room code
+- **New code**
+- **Create room**
+- **Join room**
+- **Leave**
+- connection status
+- participant count/list
+- indication of the current room owner
+
+If **Create room** is pressed, a fresh six-digit code is generated. Photon Fusion's
+Join/Create behavior then creates that room. Quest users enter the same code.
+
+The desktop client receives the same Open Brush command stream and scene snapshot,
+so strokes made by VR participants appear on the PC display.
+
+## Build the PC application
+
+After Photon is configured:
+
+`Open Brush > Multiplayer > Build Windows Observer`
+
+Output:
+
+`Builds/Multiplayer/WindowsObserver/OpenBrushObserver.exe`
+
+## Build the Quest application
+
+After Photon is configured:
+
+`Open Brush > Multiplayer > Build Quest Multiplayer APK`
+
+Output:
+
+`Builds/Multiplayer/Quest/OpenBrushMultiplayer.apk`
+
+The Quest build uses Android + OpenXR + IL2CPP.
+
+# End-to-end test
+
+1. Start `OpenBrushObserver.exe` on the PC.
+2. Press **Create room** and note the six-digit code.
+3. Install `OpenBrushMultiplayer.apk` on Quest A and Quest B.
+4. Open Multiplayer on both headsets.
+5. Enter the same room code and join.
+6. Draw on Quest A.
+7. Verify the stroke appears on Quest B and on the PC.
+8. Draw on Quest B.
+9. Verify the stroke appears on Quest A and on the PC.
+10. Undo on a headset and verify the command is reflected on the other clients.
+11. Join a third client after strokes already exist and verify
+    `MultiplayerSceneSync` restores the current scene.
+
+# Current external requirements
+
+The repository code path is prepared, but a real Photon deployment still requires
+credentials that must belong to your Photon account and therefore are not committed:
+
+- Photon Fusion App ID
+- Photon Voice App ID
+
+The Photon SDK binaries/packages also remain an external dependency. The editor
+validator deliberately refuses to enable/build multiplayer when those SDK types are
+missing.
