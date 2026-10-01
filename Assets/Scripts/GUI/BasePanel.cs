@@ -146,6 +146,7 @@ namespace TiltBrush
         public void SetRuntimePanelDescription(string description)
         {
             m_PanelDescription = description;
+            m_LocalizedPanelDescription = new UnityEngine.Localization.LocalizedString();
         }
 
         public string PanelDescription
