@@ -332,3 +332,51 @@ prints a warning and the feature can be enabled manually.
 Passthrough is produced locally by the VIVE Focus Vision cameras/OpenXR runtime.
 It does not require WAN/internet connectivity. Teacher commands also remain on
 the classroom LAN.
+
+
+## XREAL Beam Pro client
+
+The classroom LAN protocol also supports XREAL glasses connected through Beam Pro.
+
+Build command:
+
+```text
+Open Brush > Multiplayer > Build XREAL Beam Pro Multiplayer APK
+```
+
+Output:
+
+```text
+Builds/Multiplayer/XrealBeamPro/OpenBrushXrealBeamPro.apk
+```
+
+The official XREAL Unity SDK is not redistributed in this repository. Import
+`com.xreal.xr.tar.gz` from the official XREAL SDK download before building.
+
+The Open Brush build pipeline contains a dedicated `XrSdkMode.XREAL` target and
+dynamically discovers the installed XREAL XR Loader. The XREAL Android build uses
+IL2CPP, ARM64 and OpenGL ES3.
+
+Beam Pro uses the same LAN discovery and multiplayer transport as VIVE:
+
+```text
+UDP 45870 discovery
+TCP 45871 room traffic
+```
+
+The Windows Teacher Observer can host a mixed room containing VIVE Focus Vision
+and XREAL/Beam Pro clients. XREAL clients report their provider and tracking
+capability so participant rows can show values such as `XREAL 3DoF` or
+`XREAL 6DoF`.
+
+XREAL is optical see-through. Therefore the common classroom VR/AR commands have
+device-specific meaning:
+
+- VIVE uses camera passthrough.
+- XREAL AR uses the optical see-through display.
+- XREAL VR requests the darkest virtual backdrop available to the application;
+  it cannot physically occlude the real world on glasses without hardware
+  dimming.
+
+The common Teacher-PC controls and LAN status reporting remain the same for both
+device families.
