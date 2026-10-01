@@ -130,6 +130,12 @@ public class XrealBeamProMixedRealityController : MonoBehaviour {
 
   public static bool IsActiveXrealLoader() {
     try {
+      string stamp = App.Config != null ? App.Config.m_BuildStamp : string.Empty;
+      if (!string.IsNullOrWhiteSpace(stamp) &&
+          stamp.IndexOf("xreal", StringComparison.OrdinalIgnoreCase) >= 0) {
+        return true;
+      }
+
       var loader = XRGeneralSettings.Instance?.Manager?.activeLoader;
       string name = loader?.GetType().FullName ?? string.Empty;
       return name.IndexOf("XREAL", StringComparison.OrdinalIgnoreCase) >= 0;
