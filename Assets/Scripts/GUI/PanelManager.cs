@@ -490,7 +490,9 @@ namespace TiltBrush
                 type == BasePanel.PanelType.AppSettings || type == BasePanel.PanelType.AppSettingsMobile ||
                 type == BasePanel.PanelType.Sketchbook || type == BasePanel.PanelType.SketchbookMobile ||
                 type == BasePanel.PanelType.Camera || type == BasePanel.PanelType.MemoryWarning ||
-                type == BasePanel.PanelType.Multiplayer || type == BasePanel.PanelType.QuillLibrary;
+                type == BasePanel.PanelType.Multiplayer || type == BasePanel.PanelType.QuillLibrary ||
+                type == BasePanel.PanelType.Primitives ||
+                type == BasePanel.PanelType.PrimitiveProperties;
         }
 
         // Core panels are those that exist in the basic mode experience.  Practically, those that
@@ -583,6 +585,7 @@ namespace TiltBrush
             }
 
             CreateRuntimePrimitivesPanel();
+            CreateRuntimePrimitivePropertiesPanel();
 
             // Init rotation.
             m_WandPanelsRotationDiffCount = 4;
@@ -654,10 +657,46 @@ namespace TiltBrush
             }
 
             PanelData primitiveData = m_AllPanels[m_AllPanels.Count - 1];
-            primitiveData.m_Panel.gameObject.name = "PrimitivesPanel_Basic";
+            primitiveData.m_Panel.gameObject.name = "PrimitivesPanel";
             var controller = primitiveData.m_Panel.gameObject
                 .AddComponent<PrimitivePanelController>();
             controller.Configure();
+        }
+
+        void CreateRuntimePrimitivePropertiesPanel()
+        {
+            PanelData guideData = m_AllPanels.FirstOrDefault(
+                x => x.m_Panel != null &&
+                     x.m_Panel.Type == BasePanel.PanelType.GuideTools &&
+                     !x.m_Panel.AdvancedModePanel);
+
+            if (guideData == null || guideData.m_Panel == null)
+            {
+                Debug.LogWarning("[Primitive Properties] GuideToolsPanel template not available.");
+                return;
+            }
+
+            int before = m_AllPanels.Count;
+            PanelMapKey key = guideData.m_MapKey;
+            key.m_PanelPrefab = guideData.m_Panel.gameObject;
+            key.m_Basic = true;
+            key.m_Advanced = true;
+            key.m_Multiplayer = true;
+
+            CreatePanel(key, false);
+            if (m_AllPanels.Count <= before)
+            {
+                return;
+            }
+
+            PanelData propertiesData = m_AllPanels[m_AllPanels.Count - 1];
+            propertiesData.m_Panel.gameObject.name = "PrimitivePropertiesPanel";
+            var controller = propertiesData.m_Panel.gameObject
+                .AddComponent<PrimitivePropertiesPanelController>();
+            controller.Configure();
+
+            propertiesData.m_Panel.transform.localPosition +=
+                new Vector3(2.2f, 0f, 0f);
         }
 
         void CreatePanel(PanelMapKey key, bool advancedPanel)
