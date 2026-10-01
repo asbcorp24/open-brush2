@@ -64,13 +64,9 @@ public class PhotonVoiceManager : IVoiceConnectionHandler, IConnectionCallbacks,
             if (m_VoiceConnection == null) throw new Exception("[PhotonVoiceManager] VoiceConnection component not found in scene");
             m_VoiceConnection.VoiceLogger.LogLevel = Photon.Voice.LogLevel.Error;
 
-            var voiceSecrets = App.Config != null ? App.Config.PhotonVoiceSecrets : null;
-            if (voiceSecrets == null || string.IsNullOrWhiteSpace(voiceSecrets.ClientId))
-                throw new Exception("Photon Voice App ID is missing. Configure Photon Voice in Secrets.asset.");
-
             m_VoiceConnection.Settings = new AppSettings
             {
-                AppIdVoice = voiceSecrets.ClientId,
+                AppIdVoice = App.Config.PhotonVoiceSecrets.ClientId,
                 FixedRegion = "",
             };
 
@@ -93,11 +89,7 @@ public class PhotonVoiceManager : IVoiceConnectionHandler, IConnectionCallbacks,
 
     void OnDestroy()
     {
-        if (m_VoiceConnection != null)
-        {
-            m_VoiceConnection.RemoteVoiceAdded -= OnRemoteVoiceAdded;
-            m_VoiceConnection.Client.RemoveCallbackTarget(this);
-        }
+        m_VoiceConnection.RemoteVoiceAdded += OnRemoteVoiceAdded;
     }
 
     public async Task<bool> Connect()
