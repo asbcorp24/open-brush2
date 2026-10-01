@@ -15,7 +15,8 @@ public enum PrimitivePropertyAction {
   SnapToGrid,
   ColorNext,
   AlphaNext,
-  ToggleWireframe
+  ToggleWireframe,
+  SizeStepNext
 }
 
 public class PrimitivePropertyButton : BaseButton {
