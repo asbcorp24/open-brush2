@@ -68,37 +68,31 @@ public class MixedRealityPanelController : MonoBehaviour {
   }
 
   public static void ApplyAction(MixedRealityControlAction action) {
-    var controller = VivePassthroughController.Instance;
-    if (controller == null) {
-      OutputWindowScript.Error("Mixed Reality controller is not ready.");
-      return;
-    }
-
     switch (action) {
       case MixedRealityControlAction.VR:
-        controller.SetMode(ClassroomMrMode.VR, 0f);
+        ClassroomMixedReality.SetMode(ClassroomMrMode.VR, 0f);
         MultiplayerManager.m_Instance?.ReportLocalMixedRealityState(false, 0f);
-        OutputWindowScript.Error("Mixed Reality: VR");
+        OutputWindowScript.Error("Mixed Reality (" + ClassroomMixedReality.ProviderName + "): VR");
         break;
       case MixedRealityControlAction.AR25:
-        controller.SetMode(ClassroomMrMode.AR, 0.25f);
+        ClassroomMixedReality.SetMode(ClassroomMrMode.AR, 0.25f);
         MultiplayerManager.m_Instance?.ReportLocalMixedRealityState(true, 0.25f);
-        OutputWindowScript.Error("Mixed Reality: AR 25%");
+        OutputWindowScript.Error("Mixed Reality (" + ClassroomMixedReality.ProviderName + "): AR 25%");
         break;
       case MixedRealityControlAction.AR50:
-        controller.SetMode(ClassroomMrMode.AR, 0.50f);
+        ClassroomMixedReality.SetMode(ClassroomMrMode.AR, 0.50f);
         MultiplayerManager.m_Instance?.ReportLocalMixedRealityState(true, 0.50f);
-        OutputWindowScript.Error("Mixed Reality: AR 50%");
+        OutputWindowScript.Error("Mixed Reality (" + ClassroomMixedReality.ProviderName + "): AR 50%");
         break;
       case MixedRealityControlAction.AR75:
-        controller.SetMode(ClassroomMrMode.AR, 0.75f);
+        ClassroomMixedReality.SetMode(ClassroomMrMode.AR, 0.75f);
         MultiplayerManager.m_Instance?.ReportLocalMixedRealityState(true, 0.75f);
-        OutputWindowScript.Error("Mixed Reality: AR 75%");
+        OutputWindowScript.Error("Mixed Reality (" + ClassroomMixedReality.ProviderName + "): AR 75%");
         break;
       case MixedRealityControlAction.AR100:
-        controller.SetMode(ClassroomMrMode.AR, 1.00f);
+        ClassroomMixedReality.SetMode(ClassroomMrMode.AR, 1.00f);
         MultiplayerManager.m_Instance?.ReportLocalMixedRealityState(true, 1.00f);
-        OutputWindowScript.Error("Mixed Reality: AR 100%");
+        OutputWindowScript.Error("Mixed Reality (" + ClassroomMixedReality.ProviderName + "): AR 100%");
         break;
     }
   }
