@@ -387,6 +387,14 @@ namespace OpenBrush.Multiplayer
                 return;
             }
 
+            // LAN transport must keep pumping its main-thread queue while reconnecting.
+            if (m_MultiplayerType == MultiplayerType.Lan &&
+                State == ConnectionState.RECONNECTING)
+            {
+                m_Manager.Update();
+                return;
+            }
+
             if (State != ConnectionState.IN_ROOM)
             {
                 return;
