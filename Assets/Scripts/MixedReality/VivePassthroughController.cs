@@ -36,6 +36,7 @@ public class VivePassthroughController : MonoBehaviour {
 
   [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
   private static void Bootstrap() {
+    if (Application.platform != RuntimePlatform.Android) return;
     if (Instance != null) return;
     var go = new GameObject("VIVE Mixed Reality Controller");
     DontDestroyOnLoad(go);
