@@ -31,7 +31,7 @@ public class PrimitivePanelController : MonoBehaviour {
 
     // Hide non-primitive controls copied from GuideToolsPanel.
     foreach (var button in allButtons) {
-      if (button is not StencilButton) {
+      if (!(button is StencilButton)) {
         button.gameObject.SetActive(false);
       }
     }
