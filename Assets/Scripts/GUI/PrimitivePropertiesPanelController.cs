@@ -6,6 +6,22 @@ using UnityEngine;
 
 namespace TiltBrush {
 
+public enum PrimitivePropertyAction {
+  SizeXMinus,
+  SizeXPlus,
+  SizeYMinus,
+  SizeYPlus,
+  SizeZMinus,
+  SizeZPlus,
+  Duplicate,
+  SnapToGrid,
+  ColorNext,
+  AlphaNext,
+  ToggleWireframe,
+  SizeStepNext,
+  MaterialNext
+}
+
 public class PrimitivePropertiesPanelController : MonoBehaviour {
   private static readonly float[] kSizeStepsMeters = { 0.01f, 0.05f, 0.10f };
   private static int s_SizeStepIndex = 2;
@@ -52,17 +68,17 @@ public class PrimitivePropertiesPanelController : MonoBehaviour {
       button.gameObject.SetActive(false);
     }
 
-    var buttons = new List<PrimitivePropertyButton>();
+    var buttons = new List<StencilButton>();
     for (int i = 0; i < kActions.Length; ++i) {
       var clone = Instantiate(template.gameObject, template.transform.parent);
       clone.SetActive(false);
 
-      var stencil = clone.GetComponent<StencilButton>();
-      if (stencil != null) stencil.enabled = false;
-
-      var actionButton = clone.AddComponent<PrimitivePropertyButton>();
-      actionButton.Configure(kActions[i].action, kActions[i].label);
-      buttons.Add(actionButton);
+      var button = clone.GetComponent<StencilButton>();
+      button.ConfigureProperty(
+          kActions[i].action,
+          kActions[i].label,
+          IconForAction(kActions[i].action));
+      buttons.Add(button);
       clone.SetActive(true);
     }
 
@@ -77,6 +93,24 @@ public class PrimitivePropertiesPanelController : MonoBehaviour {
           new Vector3(col * spacingX, -row * spacingY, 0f);
       buttons[i].transform.localRotation = Quaternion.identity;
       buttons[i].transform.localScale = Vector3.one * 0.28f;
+    }
+  }
+
+  private static string IconForAction(PrimitivePropertyAction action) {
+    switch (action) {
+      case PrimitivePropertyAction.Duplicate: return "Icons/copy";
+      case PrimitivePropertyAction.SnapToGrid: return "Icons/pointersnap";
+      case PrimitivePropertyAction.ColorNext: return "Icons/colorpalette";
+      case PrimitivePropertyAction.AlphaNext: return "Icons/visibility_on";
+      case PrimitivePropertyAction.ToggleWireframe: return "Icons/max_edges";
+      case PrimitivePropertyAction.SizeStepNext: return "Icons/grid_thick";
+      case PrimitivePropertyAction.MaterialNext: return "Icons/colortoggle_hs_l";
+      case PrimitivePropertyAction.SizeXMinus:
+      case PrimitivePropertyAction.SizeYMinus:
+      case PrimitivePropertyAction.SizeZMinus:
+        return "Icons/grid_contract";
+      default:
+        return "Icons/grid_expand";
     }
   }
 
