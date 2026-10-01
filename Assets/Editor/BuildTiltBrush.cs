@@ -115,6 +115,7 @@ static class BuildTiltBrush
             // UnityXR runtime path, which falls back to view-only mode when no loader initializes.
             new KeyValuePair<XrSdkMode, BuildTarget>(XrSdkMode.OpenXR, BuildTarget.iOS),
             new KeyValuePair<XrSdkMode, BuildTarget>(XrSdkMode.AndroidXR, BuildTarget.Android),
+            new KeyValuePair<XrSdkMode, BuildTarget>(XrSdkMode.XREAL, BuildTarget.Android),
 
             // Zapbox
             new KeyValuePair<XrSdkMode, BuildTarget>(XrSdkMode.Zapbox, BuildTarget.iOS),
@@ -1264,6 +1265,33 @@ static class BuildTiltBrush
         }
     }
 
+    static string FindXrealLoaderTypeName()
+    {
+        try
+        {
+            return AppDomain.CurrentDomain.GetAssemblies()
+                .SelectMany(a =>
+                {
+                    try { return a.GetTypes(); }
+                    catch (ReflectionTypeLoadException ex)
+                    {
+                        return ex.Types.Where(t => t != null);
+                    }
+                })
+                .Where(t => t != null &&
+                    typeof(XRLoader).IsAssignableFrom(t) &&
+                    !t.IsAbstract &&
+                    t.Name.IndexOf("XREAL", StringComparison.OrdinalIgnoreCase) >= 0 &&
+                    t.Name.IndexOf("Loader", StringComparison.OrdinalIgnoreCase) >= 0)
+                .Select(t => t.FullName)
+                .FirstOrDefault();
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     class TempSetXrPlugin : IDisposable
     {
         List<XRLoader> m_plugins;
@@ -1296,6 +1324,16 @@ static class BuildTiltBrush
                     break;
                 case XrSdkMode.AndroidXR:
                     targetXrPluginsRequired = new string[] { "UnityEngine.XR.OpenXR.OpenXRLoader" };
+                    break;
+                case XrSdkMode.XREAL:
+                    string xrealLoader = FindXrealLoaderTypeName();
+                    if (string.IsNullOrEmpty(xrealLoader))
+                    {
+                        throw new BuildFailedException(
+                            "XREAL XR Loader was not found. Import the official com.xreal.xr SDK package first.");
+                    }
+                    targetXrPluginsRequired = new string[] { xrealLoader };
+                    targetSettings.InitManagerOnStart = true;
                     break;
                 case XrSdkMode.Zapbox:
                     targetXrPluginsRequired = new string[] { "Zappar.XR.ZapboxLoader" };
@@ -1374,6 +1412,12 @@ static class BuildTiltBrush
 
             switch (tiltOptions.XrSdk)
             {
+                case XrSdkMode.XREAL:
+                    targetGraphicsApisRequired = new[]
+                    {
+                        UnityEngine.Rendering.GraphicsDeviceType.OpenGLES3
+                    };
+                    break;
                 default:
                     targetGraphicsApisRequired = m_graphicsApis;
                     break;
