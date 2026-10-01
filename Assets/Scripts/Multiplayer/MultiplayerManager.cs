@@ -351,7 +351,7 @@ namespace OpenBrush.Multiplayer
         public void MutePlayerForMe(bool muted, int playerId)
         {
             GetPlayerById(playerId).m_IsMutedForMe = muted;
-            MultiplayerAudioSourcesManager.m_Instance.SetMuteForPlayer(playerId, muted);
+            MultiplayerAudioSourcesManager.m_Instance?.SetMuteForPlayer(playerId, muted);
         }
 
         public void MutePlayerForAll(bool muted, int playerId)
