@@ -42,6 +42,7 @@ namespace TiltBrush
         OpenXR = 0,
         Zapbox,
         AndroidXR,
+        XREAL,
     }
 
     // The sdk mode indicates which SDK that we're using to drive the display.
