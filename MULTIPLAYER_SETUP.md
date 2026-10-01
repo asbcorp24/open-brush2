@@ -1,140 +1,32 @@
-# Multiplayer setup for this fork
+# Open Brush LAN Multiplayer — VIVE Focus Vision + Windows Teacher PC
 
-This fork already contains Open Brush's multiplayer implementation:
+This branch uses **local-network multiplayer only**.
 
-- Photon Fusion room/lobby connection
-- remote head and controller pose sync
-- brush/color/size sync
-- command and stroke replication
-- late-join scene synchronization
-- undo/redo synchronization
-- room ownership, kick, mute and view-only modes
-- Photon Voice
-- manual co-location support
+There is no Photon dependency in the active multiplayer path.
+No internet connection, Photon App ID, Fusion account, or Voice account is required.
 
-The Main scene already has **MultiplayerManager** enabled with
-`m_MultiplayerType: Photon`.
+## Architecture
 
-## 1. Install the Photon SDKs
+- Windows PC runs `OpenBrushObserver.exe`.
+- The Windows client is the LAN room host.
+- HTC VIVE Focus Vision headsets run the Android standalone APK.
+- All devices must be connected to the same local Wi-Fi/LAN.
+- The router does **not** need internet access.
+- Headsets find the host automatically by the six-digit room code using UDP broadcast.
+- Reliable scene/command traffic uses direct TCP connections to the PC.
 
-Use the versions supported by upstream Open Brush:
+Default ports:
 
-- Photon Fusion 2.0.3
-- Photon Voice 2
+- UDP discovery: `45870`
+- TCP multiplayer: `45871`
 
-Upstream also provides a combined mirror package:
+Allow these ports through Windows Firewall on the teacher PC.
 
-https://github.com/icosa-mirror/photon-fusion/releases/tag/Fusion_v2_Voice_2
+## Build targets
 
-Copy/import the SDK contents into the Unity project's `Assets` folder and restart Unity.
+### Windows Teacher / Observer
 
-Do not enable `MP_PHOTON` before the SDKs are present.
-
-## 2. Enable multiplayer code
-
-In Unity use:
-
-`Open Brush > Multiplayer > Enable Photon Multiplayer`
-
-The helper added in this branch checks that both SDKs are loaded and then adds
-`MP_PHOTON` to both Standalone and Android scripting define symbols.
-
-You can verify at any time with:
-
-`Open Brush > Multiplayer > Validate Photon Setup`
-
-## 3. Create Photon applications
-
-Create two Photon applications in the Photon dashboard:
-
-1. **Fusion** app
-2. **Voice** app
-
-Keep the App IDs private.
-
-## 4. Configure Open Brush Secrets.asset
-
-Create the normal Open Brush `Secrets.asset` if one does not already exist.
-
-Add:
-
-- `Photon Fusion` -> put the Fusion App ID in **Client ID**
-- `Photon Voice` -> put the Voice App ID in **Client ID**
-
-The runtime reads the Fusion ID through
-`App.Config.PhotonFusionSecrets.ClientId` and the Voice configuration through
-the existing Photon Voice integration.
-
-Never commit your real `Secrets.asset`.
-
-## 5. Test two VR devices
-
-Build the same branch for two devices.
-
-On device A:
-
-1. Open Multiplayer.
-2. Connect.
-3. Create/join a room, for example `SCI-101`.
-
-On device B:
-
-1. Open Multiplayer.
-2. Connect.
-3. Join the same `SCI-101` room.
-
-Both users should see each other's head/controllers and brush state. Commands and
-strokes are distributed through the existing Open Brush command synchronization,
-and a late joiner receives the current scene through `MultiplayerSceneSync`.
-
-## Recommended first test
-
-Use two VIVE Focus Vision headsets on the same Wi-Fi network, but keep internet access enabled
-for Photon Cloud. Draw one simple stroke on each device, test undo/redo, then test
-joining the room after several strokes already exist.
-
-## Important
-
-`com.unity.multiplayer.center` in Packages/manifest.json is not the networking
-backend used by this implementation. The actual backend is the code under:
-
-`Assets/Scripts/Multiplayer/Photon/`
-
-and it is compiled only when `MP_PHOTON` (and Fusion's own generated symbols)
-are active.
-
-
-# Dedicated Windows Observer / Admin client
-
-This branch also adds a dedicated desktop observer workflow.
-
-The Windows observer uses the same Open Brush Main scene and the same Photon room
-as VIVE Focus Vision clients, but is built in **Monoscopic** mode. It does not require a VR
-headset.
-
-When launched without VR it automatically creates the
-`DesktopMultiplayerObserver` overlay.
-
-The overlay provides:
-
-- six-digit room code
-- **New code**
-- **Create room**
-- **Join room**
-- **Leave**
-- connection status
-- participant count/list
-- indication of the current room owner
-
-If **Create room** is pressed, a fresh six-digit code is generated. Photon Fusion's
-Join/Create behavior then creates that room. VIVE Focus Vision users enter the same code.
-
-The desktop client receives the same Open Brush command stream and scene snapshot,
-so strokes made by VR participants appear on the PC display.
-
-## Build the PC application
-
-After Photon is configured:
+Unity menu:
 
 `Open Brush > Multiplayer > Build Windows Observer`
 
@@ -142,103 +34,120 @@ Output:
 
 `Builds/Multiplayer/WindowsObserver/OpenBrushObserver.exe`
 
-## Build the VIVE Focus Vision application
+The PC application runs in Monoscopic mode, hosts the LAN room, displays the live
+shared 3D scene and provides teacher controls.
 
-After Photon is configured:
+### HTC VIVE Focus Vision
+
+Unity menu:
 
 `Open Brush > Multiplayer > Build VIVE Focus Vision Multiplayer APK`
 
 Output:
 
-`Builds/Multiplayer/VIVE Focus Vision/OpenBrushMultiplayer.apk`
+`Builds/Multiplayer/ViveFocusVision/OpenBrushViveFocusVisionMultiplayer.apk`
 
-The VIVE Focus Vision build uses Android + OpenXR + IL2CPP.
+The headset build uses Android ARM64 + OpenXR + IL2CPP.
 
-# End-to-end test
+The project includes the VIVE OpenXR package through the configured VIVE scoped
+registry. After package import, run Unity OpenXR Project Validation for Android.
 
-1. Start `OpenBrushObserver.exe` on the PC.
-2. Press **Create room** and note the six-digit code.
-3. Install `OpenBrushMultiplayer.apk` on VIVE Focus Vision A and VIVE Focus Vision B.
-4. Open Multiplayer on both headsets.
-5. Enter the same room code and join.
-6. Draw on VIVE Focus Vision A.
-7. Verify the stroke appears on VIVE Focus Vision B and on the PC.
-8. Draw on VIVE Focus Vision B.
-9. Verify the stroke appears on VIVE Focus Vision A and on the PC.
-10. Undo on a headset and verify the command is reflected on the other clients.
-11. Join a third client after strokes already exist and verify
-    `MultiplayerSceneSync` restores the current scene.
+## Classroom flow
 
-# Current external requirements
+1. Connect the teacher PC and all VIVE Focus Vision headsets to the same Wi-Fi.
+2. Internet access may be completely disabled.
+3. Start `OpenBrushObserver.exe` on the teacher PC.
+4. Press **Create room**.
+5. The PC generates a six-digit room code, for example `583921`.
+6. Open Open Brush on every VIVE Focus Vision headset.
+7. Open Multiplayer and enter the same six-digit code.
+8. Each headset listens for LAN announcements for that room.
+9. When the PC is found, the headset connects directly to the PC.
+10. Drawing is synchronized between the PC and all connected headsets.
 
-The repository code path is prepared, but a real Photon deployment still requires
-credentials that must belong to your Photon account and therefore are not committed:
+## Late join
 
-- Photon Fusion App ID
-- Photon Voice App ID
+When a new headset joins an existing room, the Windows host sends the current
+stroke state through the existing `MultiplayerSceneSync` flow.
 
-The Photon SDK binaries/packages also remain an external dependency. The editor
-validator deliberately refuses to enable/build multiplayer when those SDK types are
-missing.
+The joining headset clears its local sketch before applying the room state.
 
+## Live synchronization
 
-# Teacher controls in Windows Observer
+LAN transport currently handles:
 
-When the Windows client owns the room, the observer panel now provides classroom
-administration controls:
+- brush strokes;
+- stroke deletion;
+- undo/redo identity for synchronized commands;
+- late-join stroke scene sync;
+- head pose;
+- left/right controller pose;
+- tool pose;
+- nickname;
+- room owner state;
+- view-only controls;
+- kick;
+- ownership transfer;
+- manual co-location reference;
+- participant join/leave.
 
-- **All view-only** — prevent all connected VR participants from drawing.
-- **Allow all draw** — re-enable drawing for everyone.
-- **Mute all / Unmute all** — control room voice for remote participants.
-- **Clear strokes** — deletes every active stroke by issuing normal
-  `DeleteStrokeCommand` commands. Because these are recorded through
-  `SketchMemoryScript`, the existing multiplayer command hook broadcasts the
-  deletions to all connected clients.
-- **Save sketch** — saves the synchronized room state to a local `.tilt` file on
-  the teacher PC using a timestamped `Multiplayer_<room>_...` filename.
+Voice is intentionally disabled in LAN mode. It can be added later as a separate
+local voice feature without introducing an internet dependency.
 
-Each participant also receives an admin row with:
+## Teacher controls
 
-- **View only / Allow draw**
-- **Mute / Unmute**
-- **Kick**
-- **Make owner**
+The Windows Observer provides:
 
-These participant controls are enabled only when the Windows client is the current
-room owner. Ownership can be transferred to another participant.
+- create room;
+- join/leave;
+- participant list;
+- save shared sketch;
+- clear synchronized strokes;
+- all users view-only;
+- allow everyone to draw;
+- per-user view-only / allow draw;
+- kick user;
+- transfer ownership.
 
-The teacher window can be hidden/shown with **F2** while the live 3D scene remains
-visible behind it.
+Mute buttons remain UI-compatible, but LAN mode currently has no voice channel.
 
+Press **F2** to hide/show the teacher panel while keeping the live 3D scene visible.
 
-# VIVE Focus Vision target
+## Network requirements
 
-The Android multiplayer build in this branch now targets **HTC VIVE Focus Vision**
-as a standalone headset.
+No WAN/internet route is required.
 
-Project changes:
+A normal Wi-Fi router or access point is enough:
 
-- added `com.htc.upm.vive.openxr` version 2.5.1 from the already configured
-  VIVE scoped registry;
-- keeps Android ARM64 + OpenXR + IL2CPP;
-- build validation now requires the VIVE OpenXR package in addition to Photon;
-- Android output is now:
-  `Builds/Multiplayer/ViveFocusVision/OpenBrushViveFocusVisionMultiplayer.apk`;
-- build menu:
-  `Open Brush > Multiplayer > Build VIVE Focus Vision Multiplayer APK`.
+```
+VIVE Focus Vision 1 ─┐
+VIVE Focus Vision 2 ─┤
+VIVE Focus Vision 3 ─┼── local Wi-Fi/LAN ── Windows Teacher PC
+VIVE Focus Vision 4 ─┘
+```
 
-After Unity imports the VIVE package, open:
+Recommended:
 
-`Edit > Project Settings > XR Plug-in Management > OpenXR`
+- 5 GHz or 6 GHz Wi-Fi;
+- all headsets on the same SSID/VLAN;
+- disable AP/client isolation;
+- Windows network profile set to Private;
+- allow UDP 45870 and TCP 45871 through Windows Firewall.
 
-and run **Project Validation / Fix All**. Ensure the VIVE XR support/controller
-interaction profile for Focus devices is enabled for Android.
+## Offline verification test
 
-On the headset enable USB debugging:
+1. Disconnect the router WAN/internet cable.
+2. Keep Wi-Fi enabled.
+3. Start Windows Observer.
+4. Create a room.
+5. Join from two VIVE Focus Vision headsets.
+6. Draw on headset A.
+7. Verify it appears on headset B and PC.
+8. Draw on headset B.
+9. Verify it appears on headset A and PC.
+10. Join a third headset after strokes already exist.
+11. Verify the current sketch is restored.
+12. Test view-only, kick, save, clear and ownership controls.
 
-`Settings > Developer options > USB debugging`
-
-Then the generated APK can be installed directly on VIVE Focus Vision.
-
-The Windows Observer remains unchanged and joins the same Photon room as all
-Focus Vision headsets.
+If this test succeeds with the WAN cable disconnected, the installation is fully
+offline.
