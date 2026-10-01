@@ -20,6 +20,19 @@ namespace TiltBrush
     {
         [SerializeField] private StencilType m_Type;
 
+        public StencilType Type
+        {
+            get => m_Type;
+            set => m_Type = value;
+        }
+
+        public void Configure(StencilType type, string description)
+        {
+            m_Type = type;
+            SetDescriptionText(description);
+            gameObject.name = "PanelButton_Primitive_" + type;
+        }
+
         override protected void OnButtonPressed()
         {
             if (WidgetManager.m_Instance.StencilsDisabled)
