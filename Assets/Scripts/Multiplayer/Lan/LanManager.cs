@@ -380,12 +380,9 @@ public class LanManager : IDataConnectionHandler {
           ClearRemotePlayersForReconnect();
           SketchMemoryScript.m_Instance?.ClearMemory();
           m_Manager.localPlayerJoined?.Invoke(packet.playerId, m_Local);
-          var mr = VivePassthroughController.Instance;
-          if (mr != null) {
-            ReportLocalMixedRealityState(
-                mr.Mode == ClassroomMrMode.AR,
-                mr.PassthroughAmount);
-          }
+          ReportLocalMixedRealityState(
+              ClassroomMixedReality.Mode == ClassroomMrMode.AR,
+              ClassroomMixedReality.Amount);
           if (wasReconnect) m_Manager.NotifyLanReconnected();
         });
         break;
@@ -449,14 +446,12 @@ public class LanManager : IDataConnectionHandler {
       var state = JsonUtility.FromJson<MixedRealityState>(payload);
       if (state == null) return;
 
-      var controller = VivePassthroughController.Instance;
-      if (controller == null) return;
-
-      controller.SetMode(state.ar ? ClassroomMrMode.AR : ClassroomMrMode.VR,
+      ClassroomMixedReality.SetMode(
+          state.ar ? ClassroomMrMode.AR : ClassroomMrMode.VR,
           Mathf.Clamp01(state.amount));
       ReportLocalMixedRealityState(
-          controller.Mode == ClassroomMrMode.AR,
-          controller.PassthroughAmount);
+          ClassroomMixedReality.Mode == ClassroomMrMode.AR,
+          ClassroomMixedReality.Amount);
     } catch (Exception ex) {
       Debug.LogWarning("[LAN MR] " + ex.Message);
     }
