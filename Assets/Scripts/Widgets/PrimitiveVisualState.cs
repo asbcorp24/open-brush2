@@ -3,12 +3,19 @@ using UnityEngine;
 
 namespace TiltBrush {
 
+public enum PrimitiveMaterialMode {
+  Solid = 0,
+  Metallic = 1,
+  Emissive = 2
+}
+
 public class PrimitiveVisualState : MonoBehaviour {
   private const string kWireChildName = "__PrimitiveWireframe";
 
   public Color Color = Color.white;
   [Range(0.05f, 1f)] public float Alpha = 1f;
   public bool Wireframe;
+  public PrimitiveMaterialMode MaterialMode = PrimitiveMaterialMode.Solid;
 
   public void Apply() {
     foreach (var renderer in GetComponentsInChildren<Renderer>(true)) {
@@ -20,6 +27,8 @@ public class PrimitiveVisualState : MonoBehaviour {
         c.a = Alpha;
         if (material.HasProperty("_Color")) material.SetColor("_Color", c);
         if (material.HasProperty("_BaseColor")) material.SetColor("_BaseColor", c);
+
+        ApplyMaterialMode(material, c);
 
         if (Alpha < 0.999f) {
           material.SetOverrideTag("RenderType", "Transparent");
@@ -44,6 +53,35 @@ public class PrimitiveVisualState : MonoBehaviour {
     }
 
     RefreshWireframe();
+  }
+
+  private void ApplyMaterialMode(Material material, Color c) {
+    if (material == null) return;
+
+    switch (MaterialMode) {
+      case PrimitiveMaterialMode.Metallic:
+        if (material.HasProperty("_Metallic")) material.SetFloat("_Metallic", 0.9f);
+        if (material.HasProperty("_Smoothness")) material.SetFloat("_Smoothness", 0.75f);
+        material.DisableKeyword("_EMISSION");
+        if (material.HasProperty("_EmissionColor")) material.SetColor("_EmissionColor", Color.black);
+        break;
+
+      case PrimitiveMaterialMode.Emissive:
+        if (material.HasProperty("_Metallic")) material.SetFloat("_Metallic", 0.0f);
+        if (material.HasProperty("_Smoothness")) material.SetFloat("_Smoothness", 0.25f);
+        if (material.HasProperty("_EmissionColor")) {
+          material.SetColor("_EmissionColor", c * 2.0f);
+          material.EnableKeyword("_EMISSION");
+        }
+        break;
+
+      default:
+        if (material.HasProperty("_Metallic")) material.SetFloat("_Metallic", 0.0f);
+        if (material.HasProperty("_Smoothness")) material.SetFloat("_Smoothness", 0.35f);
+        material.DisableKeyword("_EMISSION");
+        if (material.HasProperty("_EmissionColor")) material.SetColor("_EmissionColor", Color.black);
+        break;
+    }
   }
 
   private void RefreshWireframe() {
