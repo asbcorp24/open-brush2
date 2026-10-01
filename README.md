@@ -104,6 +104,193 @@ Disable AP/client isolation on the Wi-Fi access point.
 
 ---
 
+## XREAL glasses + Beam Pro
+
+This fork also contains a dedicated Android build path for **XREAL glasses connected to XREAL Beam Pro**.
+
+The XREAL client uses the same classroom LAN protocol as VIVE Focus Vision:
+
+```text
+XREAL glasses
+     │ USB-C
+     ▼
+  Beam Pro
+     │ Wi-Fi
+     ▼
+Teacher PC
+```
+
+XREAL and VIVE clients can join the same classroom room.
+
+### XREAL SDK requirement
+
+XREAL SDK is distributed by XREAL as a Unity package tarball and is not committed to this repository.
+
+Download the current official **XREAL SDK for Unity 3.1.0** from XREAL Developer, accept the XREAL SDK terms, then in Unity use:
+
+```text
+Window
+→ Package Manager
+→ +
+→ Add package from tarball...
+→ com.xreal.xr.tar.gz
+```
+
+After import, switch to Android and open:
+
+```text
+Edit
+→ Project Settings
+→ XR Plug-in Management
+→ Android
+```
+
+Enable the **XREAL XR Plug-in**, then run:
+
+```text
+Project Validation
+→ Fix All
+```
+
+Open the XREAL settings page:
+
+```text
+Edit
+→ Project Settings
+→ XR Plug-in Management
+→ XREAL
+```
+
+Recommended input for Beam Pro:
+
+```text
+Initial Input Source: Controller
+```
+
+or, if the glasses support hands and you want both:
+
+```text
+Initial Input Source: Controller And Hands
+```
+
+Tracking depends on the glasses model:
+
+```text
+MODE_3DOF  → XREAL Air 2 / many Vision-category glasses
+MODE_6DOF  → XREAL Air 2 Ultra and other supported 6DoF configurations
+```
+
+The Teacher Observer reports the actual runtime tracking state as `XREAL 3DoF` or `XREAL 6DoF`.
+
+### XREAL Android settings
+
+The custom build target configures:
+
+```text
+Android
+Portrait
+OpenGL ES3
+IL2CPP
+ARM64
+Minimum API 29
+Target API: automatic
+```
+
+XREAL's current documentation recommends OpenGL ES3 for the Android SDK path and IL2CPP for ARM64.
+
+### Build XREAL Beam Pro APK
+
+After importing the XREAL SDK, use:
+
+```text
+Open Brush
+→ Multiplayer
+→ Build XREAL Beam Pro Multiplayer APK
+```
+
+Output:
+
+```text
+Builds/Multiplayer/XrealBeamPro/OpenBrushXrealBeamPro.apk
+```
+
+The build system dynamically finds the installed XREAL XR Loader, so the Open Brush source does not depend on the SDK's internal namespace.
+
+### Install on Beam Pro
+
+Connect Beam Pro to the development PC and check ADB:
+
+```bash
+adb devices
+```
+
+Install or update:
+
+```bash
+adb install -r Builds/Multiplayer/XrealBeamPro/OpenBrushXrealBeamPro.apk
+```
+
+Disconnect Beam Pro from the PC, connect the XREAL glasses to Beam Pro, then launch the application from:
+
+```text
+MyGlasses
+```
+
+Grant the requested permissions. If Android requests **Display over other apps**, allow it.
+
+### XREAL mixed reality behavior
+
+XREAL glasses are optical see-through, unlike the camera passthrough display used by VIVE Focus Vision.
+
+The same classroom MR controls are still used:
+
+```text
+VR
+AR 25%
+AR 50%
+AR 75%
+AR 100%
+```
+
+On XREAL:
+
+- AR is the natural optical see-through mode.
+- `VR` means the darkest virtual backdrop the application can render.
+- it does **not** physically block the real world unless the connected XREAL hardware provides its own optical/electrochromic dimming.
+- AR percentages are retained as common classroom state so Teacher PC control remains compatible across VIVE and XREAL.
+
+The Windows Teacher Observer shows device information such as:
+
+```text
+Student 01 • 12 ms • AR 100% • XREAL 6DoF
+Student 02 • 15 ms • VR • VIVE 6DoF
+```
+
+Teacher controls work for mixed device classrooms:
+
+```text
+VR ALL
+AR 25%
+AR 50%
+AR 75%
+AR 100%
+```
+
+and each participant still has an individual AR/VR switch.
+
+### LAN behavior
+
+Beam Pro uses the same ports as VIVE:
+
+```text
+UDP 45870
+TCP 45871
+```
+
+No Photon service is used and no internet connection is required during classroom operation.
+
+---
+
 ## Windows installation and build
 
 Install:
