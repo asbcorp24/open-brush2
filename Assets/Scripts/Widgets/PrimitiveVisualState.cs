@@ -63,7 +63,7 @@ public class PrimitiveVisualState : MonoBehaviour {
         if (material.HasProperty("_Metallic")) material.SetFloat("_Metallic", 0.9f);
         if (material.HasProperty("_Smoothness")) material.SetFloat("_Smoothness", 0.75f);
         material.DisableKeyword("_EMISSION");
-        if (material.HasProperty("_EmissionColor")) material.SetColor("_EmissionColor", Color.black);
+        if (material.HasProperty("_EmissionColor")) material.SetColor("_EmissionColor", UnityEngine.Color.black);
         break;
 
       case PrimitiveMaterialMode.Emissive:
@@ -79,7 +79,7 @@ public class PrimitiveVisualState : MonoBehaviour {
         if (material.HasProperty("_Metallic")) material.SetFloat("_Metallic", 0.0f);
         if (material.HasProperty("_Smoothness")) material.SetFloat("_Smoothness", 0.35f);
         material.DisableKeyword("_EMISSION");
-        if (material.HasProperty("_EmissionColor")) material.SetColor("_EmissionColor", Color.black);
+        if (material.HasProperty("_EmissionColor")) material.SetColor("_EmissionColor", UnityEngine.Color.black);
         break;
     }
   }
