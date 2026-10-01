@@ -129,12 +129,8 @@ public class PrimitivePropertiesPanelController : MonoBehaviour {
     Vector3 extents = widget.Extents;
     extents[axis] = Mathf.Max(step, extents[axis] + direction * step);
 
-    TrTransform xf = widget.LocalTransform;
-    Vector3 oldCustom = widget.CustomDimension;
     SketchMemoryScript.m_Instance.PerformAndRecordCommand(
-        new MoveWidgetCommand(widget, xf, oldCustom, final: true));
-    widget.Extents = extents;
-
+        new ResizeStencilCommand(widget, extents));
     MultiplayerManager.m_Instance?.SyncPrimitiveNow(widget);
   }
 
