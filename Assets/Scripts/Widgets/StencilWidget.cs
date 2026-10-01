@@ -61,13 +61,24 @@ namespace TiltBrush
         /// backwards-compatibility code.
         public Guides.State GetSaveState(GroupIdMapping groupIdMapping)
         {
-            return new Guides.State
+            var state = new Guides.State
             {
                 Transform = TrTransform.TRS(transform.localPosition, transform.localRotation, 0),
                 Extents = Extents,
                 Pinned = m_Pinned,
                 GroupId = groupIdMapping.GetId(Group)
             };
+
+            var visual = GetComponent<PrimitiveVisualState>();
+            if (visual != null)
+            {
+                state.PrimitiveColor = visual.Color;
+                state.PrimitiveAlpha = visual.Alpha;
+                state.PrimitiveWireframe = visual.Wireframe;
+                state.PrimitiveMaterialMode = (int)visual.MaterialMode;
+            }
+
+            return state;
         }
         public Guides.State SaveState
         {
@@ -82,6 +93,20 @@ namespace TiltBrush
                 }
                 Group = App.GroupManager.GetGroupFromId(value.GroupId);
                 SetCanvas(App.Scene.GetOrCreateLayer(value.LayerId));
+
+                if (value.PrimitiveColor.HasValue ||
+                    value.PrimitiveAlpha.HasValue ||
+                    value.PrimitiveWireframe.HasValue ||
+                    value.PrimitiveMaterialMode.HasValue)
+                {
+                    var visual = PrimitiveVisualState.GetOrCreate(this);
+                    if (value.PrimitiveColor.HasValue) visual.Color = value.PrimitiveColor.Value;
+                    if (value.PrimitiveAlpha.HasValue) visual.Alpha = value.PrimitiveAlpha.Value;
+                    if (value.PrimitiveWireframe.HasValue) visual.Wireframe = value.PrimitiveWireframe.Value;
+                    if (value.PrimitiveMaterialMode.HasValue)
+                        visual.MaterialMode = (PrimitiveMaterialMode)value.PrimitiveMaterialMode.Value;
+                    visual.Apply();
+                }
             }
         }
 
@@ -194,8 +219,22 @@ namespace TiltBrush
         {
             if (m_TintableMeshes != null)
             {
-                Color rMatColor = bInUse && !WidgetManager.m_Instance.WidgetsDormant ?
-                    m_TintColor : GrabWidget.m_InactiveGrey;
+                var visual = GetComponent<PrimitiveVisualState>();
+                Color rMatColor;
+                if (visual != null)
+                {
+                    rMatColor = visual.Color;
+                    rMatColor.a = visual.Alpha;
+                    if (bInUse && !WidgetManager.m_Instance.WidgetsDormant)
+                    {
+                        rMatColor = Color.Lerp(rMatColor, Color.white, 0.2f);
+                    }
+                }
+                else
+                {
+                    rMatColor = bInUse && !WidgetManager.m_Instance.WidgetsDormant ?
+                        m_TintColor : GrabWidget.m_InactiveGrey;
+                }
                 for (int i = 0; i < m_TintableMeshes.Length; ++i)
                 {
                     m_TintableMeshes[i].material.color = rMatColor;
@@ -280,6 +319,11 @@ namespace TiltBrush
         {
             base.OnUserBeginInteracting();
             m_LockedManipulationAxis = null;
+            if (SelectionManager.m_Instance != null)
+            {
+                SelectionManager.m_Instance.LastSelectedStencil = this;
+                SelectionManager.m_Instance.LastSelectedWidget = this;
+            }
             if (m_TintableMeshes != null)
             {
                 Shader.SetGlobalFloat("_UserIsInteractingWithStencilWidget", 1.0f);

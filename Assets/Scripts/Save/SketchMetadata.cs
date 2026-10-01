@@ -466,6 +466,17 @@ namespace TiltBrush
         {
             public TrTransform Transform { get; set; }
             public Vector3 Extents { get; set; }
+
+            // Open Brush classroom primitive appearance. Optional for backwards compatibility.
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public Color? PrimitiveColor { get; set; }
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public float? PrimitiveAlpha { get; set; }
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public bool? PrimitiveWireframe { get; set; }
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public int? PrimitiveMaterialMode { get; set; }
+
             // True if guide should be pinned on load. Added in M15.
             public bool Pinned { get; set; }
             // Group ID for widget. 0 for ungrouped items. Added in M22.

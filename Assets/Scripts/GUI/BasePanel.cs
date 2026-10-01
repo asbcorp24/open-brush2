@@ -117,6 +117,9 @@ namespace TiltBrush
             WhatsNewPanel = 20300,
             BlocksPromoPanel = 20301,
             AdminPanelViewOnly = 20302,
+            Primitives = 20303,
+            PrimitiveProperties = 20304,
+            MixedReality = 20305,
         }
 
         private enum FixedTransitionState
@@ -142,6 +145,17 @@ namespace TiltBrush
         [SerializeField] protected PopupMapKey[] m_PanelPopUpMap;
         [SerializeField] protected string m_PanelDescription;
         [SerializeField] protected LocalizedString m_LocalizedPanelDescription;
+
+        public void SetRuntimePanelType(PanelType type)
+        {
+            m_PanelType = type;
+        }
+
+        public void SetRuntimePanelDescription(string description)
+        {
+            m_PanelDescription = description;
+            m_LocalizedPanelDescription = new UnityEngine.Localization.LocalizedString();
+        }
 
         public string PanelDescription
         {
