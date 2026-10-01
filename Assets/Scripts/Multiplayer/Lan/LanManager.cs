@@ -31,10 +31,12 @@ public class LanManager : IDataConnectionHandler {
     public int targetId;
     public int percentage;
     public int playerCount;
+    public int timestamp;
     public bool flag;
     public string nickname;
     public string room;
     public string payload;
+    public string commandGuid;
   }
 
   private sealed class ClientPeer {
@@ -301,7 +303,10 @@ public class LanManager : IDataConnectionHandler {
       case "welcome":
         m_PlayerCount = packet.playerCount;
         m_Local = new LocalTransientData { PlayerId = packet.playerId };
-        m_MainThread.Enqueue(() => m_Manager.localPlayerJoined?.Invoke(packet.playerId, m_Local));
+        m_MainThread.Enqueue(() => {
+          SketchMemoryScript.m_Instance?.ClearMemory();
+          m_Manager.localPlayerJoined?.Invoke(packet.playerId, m_Local);
+        });
         break;
       case "player_joined":
         if (m_Local == null || packet.playerId != m_Local.PlayerId)
@@ -367,15 +372,27 @@ public class LanManager : IDataConnectionHandler {
         var strokes = await MultiplayerStrokeSerialization.DecompressAndDeserializeMemoryListAsync(bytes);
         foreach (var stroke in strokes) {
           if (SketchMemoryScript.m_Instance.IsStrokeInMemory(stroke.m_Guid)) continue;
-          var command = new BrushStrokeCommand(stroke);
+          Guid commandId = Guid.TryParse(packet.commandGuid, out var parsed) ? parsed : Guid.NewGuid();
+          var command = new BrushStrokeCommand(stroke, commandId, packet.timestamp);
           SketchMemoryScript.m_Instance.MemoryListAdd(stroke);
-          SketchMemoryScript.m_Instance.PerformAndRecordNetworkCommand(command, true);
+          SketchMemoryScript.m_Instance.PerformAndRecordNetworkCommand(command);
         }
       } else if (packet.type == "delete") {
         if (!Guid.TryParse(packet.payload, out Guid strokeId)) return;
         var stroke = SketchMemoryScript.AllStrokes().FirstOrDefault(s => s.m_Guid == strokeId);
-        if (stroke != null)
-          SketchMemoryScript.m_Instance.PerformAndRecordNetworkCommand(new DeleteStrokeCommand(stroke), true);
+        if (stroke != null) {
+          Guid commandId = Guid.TryParse(packet.commandGuid, out var parsed) ? parsed : Guid.NewGuid();
+          SketchMemoryScript.m_Instance.PerformAndRecordNetworkCommand(
+              new DeleteStrokeCommand(stroke, commandId, packet.timestamp));
+        }
+      } else if (packet.type == "undo" || packet.type == "redo") {
+        if (!Guid.TryParse(packet.commandGuid, out Guid commandId)) return;
+        var command = SketchMemoryScript.m_Instance.GetAllOperations()
+            .FirstOrDefault(x => x.Guid == commandId);
+        if (command != null) {
+          if (packet.type == "undo") command.Undo();
+          else command.Redo();
+        }
       }
     } catch (Exception ex) {
       Debug.LogError("[LAN] Apply command failed: " + ex);
@@ -471,12 +488,22 @@ public class LanManager : IDataConnectionHandler {
     if (command is BrushStrokeCommand brush && brush.m_Stroke != null) {
       byte[] bytes = await MultiplayerStrokeSerialization.SerializeAndCompressMemoryListAsync(
           new List<Stroke> { brush.m_Stroke });
-      SendRoomPacket(new Packet { type = "stroke", payload = Convert.ToBase64String(bytes) });
+      SendRoomPacket(new Packet {
+        type = "stroke",
+        payload = Convert.ToBase64String(bytes),
+        commandGuid = command.Guid.ToString(),
+        timestamp = command.NetworkTimestamp ?? command.Timestamp
+      });
       return true;
     }
 
     if (command is DeleteStrokeCommand delete && delete.m_TargetStroke != null) {
-      SendRoomPacket(new Packet { type = "delete", payload = delete.m_TargetStroke.m_Guid.ToString() });
+      SendRoomPacket(new Packet {
+        type = "delete",
+        payload = delete.m_TargetStroke.m_Guid.ToString(),
+        commandGuid = command.Guid.ToString(),
+        timestamp = command.NetworkTimestamp ?? command.Timestamp
+      });
       return true;
     }
 
@@ -493,12 +520,12 @@ public class LanManager : IDataConnectionHandler {
   public Task<bool> CheckStrokeReception(Stroke stroke, int playerId) => Task.FromResult(true);
 
   public Task<bool> UndoCommand(BaseCommand command) {
-    SendRoomPacket(new Packet { type = "undo", payload = command.Guid.ToString() });
+    SendRoomPacket(new Packet { type = "undo", commandGuid = command.Guid.ToString() });
     return Task.FromResult(true);
   }
 
   public Task<bool> RedoCommand(BaseCommand command) {
-    SendRoomPacket(new Packet { type = "redo", payload = command.Guid.ToString() });
+    SendRoomPacket(new Packet { type = "redo", commandGuid = command.Guid.ToString() });
     return Task.FromResult(true);
   }
 
