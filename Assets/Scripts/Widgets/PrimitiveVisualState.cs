@@ -140,41 +140,50 @@ public class PrimitiveVisualState : MonoBehaviour {
   }
 
   private static Mesh BuildWireMesh(Mesh source) {
-    int[] triangles = source.triangles;
-    if (triangles == null || triangles.Length < 3) return null;
-
-    var edges = new HashSet<ulong>();
-    var indices = new List<int>();
-
-    void AddEdge(int a, int b) {
-      uint lo = (uint)Mathf.Min(a, b);
-      uint hi = (uint)Mathf.Max(a, b);
-      ulong key = ((ulong)lo << 32) | hi;
-      if (edges.Add(key)) {
-        indices.Add(a);
-        indices.Add(b);
+    try {
+      int[] triangles = source.triangles;
+      Vector3[] vertices = source.vertices;
+      if (triangles == null || triangles.Length < 3 ||
+          vertices == null || vertices.Length == 0) {
+        return null;
       }
-    }
 
-    for (int i = 0; i + 2 < triangles.Length; i += 3) {
-      int a = triangles[i];
-      int b = triangles[i + 1];
-      int c = triangles[i + 2];
-      AddEdge(a, b);
-      AddEdge(b, c);
-      AddEdge(c, a);
-    }
+      var edges = new HashSet<ulong>();
+      var indices = new List<int>();
 
-    var mesh = new Mesh {
-      name = source.name + "_Wireframe"
-    };
-    if (source.vertexCount > 65535) {
-      mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
+      void AddEdge(int a, int b) {
+        uint lo = (uint)Mathf.Min(a, b);
+        uint hi = (uint)Mathf.Max(a, b);
+        ulong key = ((ulong)lo << 32) | hi;
+        if (edges.Add(key)) {
+          indices.Add(a);
+          indices.Add(b);
+        }
+      }
+
+      for (int i = 0; i + 2 < triangles.Length; i += 3) {
+        int a = triangles[i];
+        int b = triangles[i + 1];
+        int c = triangles[i + 2];
+        AddEdge(a, b);
+        AddEdge(b, c);
+        AddEdge(c, a);
+      }
+
+      var mesh = new Mesh {
+        name = source.name + "_Wireframe"
+      };
+      if (vertices.Length > 65535) {
+        mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
+      }
+      mesh.vertices = vertices;
+      mesh.SetIndices(indices, MeshTopology.Lines, 0, false);
+      mesh.RecalculateBounds();
+      return mesh;
+    } catch (UnityException ex) {
+      Debug.LogWarning("[Primitives] Wireframe mesh is not CPU-readable: " + ex.Message);
+      return null;
     }
-    mesh.vertices = source.vertices;
-    mesh.SetIndices(indices, MeshTopology.Lines, 0, false);
-    mesh.RecalculateBounds();
-    return mesh;
   }
 
   private void OnDestroy() {
