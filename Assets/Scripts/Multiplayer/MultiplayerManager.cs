@@ -795,6 +795,20 @@ namespace OpenBrush.Multiplayer
                 : 0f;
         }
 
+        public string GetPlayerMixedRealityProvider(int playerId)
+        {
+            return m_Manager is LanManager lan
+                ? lan.GetPlayerMixedRealityProvider(playerId)
+                : string.Empty;
+        }
+
+        public string GetPlayerTrackingMode(int playerId)
+        {
+            return m_Manager is LanManager lan
+                ? lan.GetPlayerTrackingMode(playerId)
+                : string.Empty;
+        }
+
         public void SyncPrimitiveNow(StencilWidget widget)
         {
             if (m_Manager is LanManager lan)
