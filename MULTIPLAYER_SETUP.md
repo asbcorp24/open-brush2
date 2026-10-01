@@ -151,3 +151,53 @@ Recommended:
 
 If this test succeeds with the WAN cable disconnected, the installation is fully
 offline.
+
+
+## Classroom automation
+
+The LAN classroom workflow now includes four reliability features:
+
+### Start class / automatic headset join
+
+On the Windows Teacher app press **START CLASS**.
+
+The PC creates a six-digit room and starts advertising it on UDP 45870.
+VIVE Focus Vision builds contain `LanAutoJoin`, which listens for the first
+advertised Open Brush classroom on the local Wi-Fi and joins it automatically.
+
+For a dedicated classroom network this means students do not need to type an IP
+address or room code each lesson.
+
+### Automatic reconnect
+
+If a headset temporarily loses Wi-Fi, the LAN transport switches to
+`RECONNECTING`, searches for the same room again and reconnects directly to the
+teacher PC. The headset keeps a stable local user identity so it can reuse its
+player id when possible.
+
+TCP read/write timeouts are set to 5 seconds so a broken Wi-Fi link is detected
+quickly instead of remaining stuck for a long OS TCP timeout.
+
+### Heartbeat / ping
+
+The teacher PC sends a heartbeat once per second. Each headset responds locally.
+The Teacher Observer shows per-headset latency and a simple quality label:
+
+- <= 30 ms: excellent
+- <= 80 ms: good
+- <= 160 ms: unstable
+- > 160 ms: poor
+
+A peer that stops responding for more than 6 seconds is closed and removed.
+
+### Autosave
+
+While the Windows Teacher PC owns an active classroom, the synchronized sketch is
+automatically saved every 3 minutes when there are strokes and no other save is in
+progress.
+
+Autosave files are named like:
+
+`Autosave_583921_2026-10-01_10-15-00.tilt`
+
+Manual **Save sketch** remains available as well.
