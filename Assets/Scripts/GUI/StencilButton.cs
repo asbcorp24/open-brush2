@@ -19,6 +19,8 @@ namespace TiltBrush
     public class StencilButton : BaseButton
     {
         [SerializeField] private StencilType m_Type;
+        private bool m_PrimitivePropertyMode;
+        private PrimitivePropertyAction m_PrimitivePropertyAction;
 
         public StencilType Type
         {
@@ -34,8 +36,34 @@ namespace TiltBrush
             gameObject.name = "PanelButton_Primitive_" + type;
         }
 
+        public void ConfigureProperty(
+            PrimitivePropertyAction action, string description, string iconPath)
+        {
+            m_PrimitivePropertyMode = true;
+            m_PrimitivePropertyAction = action;
+            m_LocalizedDescription = new UnityEngine.Localization.LocalizedString();
+            SetDescriptionText(description);
+
+            Texture2D texture = Resources.Load<Texture2D>(iconPath);
+            if (texture != null)
+            {
+                m_ButtonTexture = texture;
+                m_CurrentButtonTexture = texture;
+                ConfigureTextureAtlas();
+            }
+
+            gameObject.name = "PanelButton_PrimitiveProperty_" + action;
+        }
+
         override protected void OnButtonPressed()
         {
+            if (m_PrimitivePropertyMode)
+            {
+                PrimitivePropertiesPanelController.ApplyAction(m_PrimitivePropertyAction);
+                SketchControlsScript.m_Instance.EatGazeObjectInput();
+                return;
+            }
+
             if (WidgetManager.m_Instance.StencilsDisabled)
             {
                 WidgetManager.m_Instance.StencilsDisabled = false;
