@@ -234,3 +234,32 @@ LAN classroom synchronization now also transports primitive state:
 
 Each primitive receives a stable `NetworkPrimitiveId` so all clients update the
 same object.
+
+
+## Primitive properties panel
+
+A second native VR panel, **PRIMITIVE PROPERTIES**, is created next to the
+PRIMITIVES panel. Grab or select a stencil/primitive and the property panel acts
+on that object.
+
+Controls now include:
+
+- X / Y / Z size decrease and increase;
+- precise size step cycling: **1 cm / 5 cm / 10 cm**;
+- current X/Y/Z dimensions are reported after resizing;
+- duplicate primitive;
+- snap position to the current Open Brush grid;
+- cycle primitive color palette;
+- transparency levels: 100% / 65% / 35%;
+- wireframe toggle using a generated edge mesh (not shader-dependent);
+- material modes: **Solid / Metallic / Emissive**.
+
+Primitive visual state and material mode are included in LAN primitive packets,
+so all headsets and the Teacher PC see the same result.
+
+Color, alpha, wireframe and material mode are also stored as optional guide
+metadata in the .tilt file and restored when the sketch is loaded. Older .tilt
+files remain compatible because the added metadata fields are optional.
+
+The last primitive grabbed with a controller automatically becomes the active
+primitive for this properties panel.
