@@ -219,8 +219,22 @@ namespace TiltBrush
         {
             if (m_TintableMeshes != null)
             {
-                Color rMatColor = bInUse && !WidgetManager.m_Instance.WidgetsDormant ?
-                    m_TintColor : GrabWidget.m_InactiveGrey;
+                var visual = GetComponent<PrimitiveVisualState>();
+                Color rMatColor;
+                if (visual != null)
+                {
+                    rMatColor = visual.Color;
+                    rMatColor.a = visual.Alpha;
+                    if (bInUse && !WidgetManager.m_Instance.WidgetsDormant)
+                    {
+                        rMatColor = Color.Lerp(rMatColor, Color.white, 0.2f);
+                    }
+                }
+                else
+                {
+                    rMatColor = bInUse && !WidgetManager.m_Instance.WidgetsDormant ?
+                        m_TintColor : GrabWidget.m_InactiveGrey;
+                }
                 for (int i = 0; i < m_TintableMeshes.Length; ++i)
                 {
                     m_TintableMeshes[i].material.color = rMatColor;
