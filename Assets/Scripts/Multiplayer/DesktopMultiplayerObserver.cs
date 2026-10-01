@@ -512,7 +512,13 @@ public class DesktopMultiplayerObserver : MonoBehaviour {
       string mrStatus = mrEnabled
           ? " • AR " + Mathf.RoundToInt(mrAmount * 100f) + "%"
           : " • VR";
-      var label = CreateLabel(row.transform, name + network + mrStatus,
+      string provider = manager.GetPlayerMixedRealityProvider(player.PlayerId);
+      string tracking = manager.GetPlayerTrackingMode(player.PlayerId);
+      string deviceStatus = string.IsNullOrWhiteSpace(provider)
+          ? string.Empty
+          : " • " + provider +
+              (string.IsNullOrWhiteSpace(tracking) ? string.Empty : " " + tracking);
+      var label = CreateLabel(row.transform, name + network + mrStatus + deviceStatus,
           13, new Vector2(0, -4), new Vector2(280, 30));
       label.alignment = TextAnchor.MiddleLeft;
 
