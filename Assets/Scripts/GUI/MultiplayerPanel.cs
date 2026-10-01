@@ -357,6 +357,10 @@ namespace TiltBrush
                     return "In Lobby";
                 case ConnectionState.IN_ROOM:
                     return "In Room";
+                case ConnectionState.RECONNECTING:
+                    return "Reconnecting";
+                case ConnectionState.LEAVING_ROOM:
+                    return "Leaving Room";
                 case ConnectionState.ERROR:
                     return "Error";
                 default:
