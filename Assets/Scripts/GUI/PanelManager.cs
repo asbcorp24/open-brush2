@@ -492,7 +492,8 @@ namespace TiltBrush
                 type == BasePanel.PanelType.Camera || type == BasePanel.PanelType.MemoryWarning ||
                 type == BasePanel.PanelType.Multiplayer || type == BasePanel.PanelType.QuillLibrary ||
                 type == BasePanel.PanelType.Primitives ||
-                type == BasePanel.PanelType.PrimitiveProperties;
+                type == BasePanel.PanelType.PrimitiveProperties ||
+                type == BasePanel.PanelType.MixedReality;
         }
 
         // Core panels are those that exist in the basic mode experience.  Practically, those that
@@ -586,6 +587,7 @@ namespace TiltBrush
 
             CreateRuntimePrimitivesPanel();
             CreateRuntimePrimitivePropertiesPanel();
+            CreateRuntimeMixedRealityPanel();
 
             // Init rotation.
             m_WandPanelsRotationDiffCount = 4;
@@ -700,6 +702,42 @@ namespace TiltBrush
 
             propertiesData.m_Panel.transform.localPosition +=
                 new Vector3(2.2f, 0f, 0f);
+        }
+
+        void CreateRuntimeMixedRealityPanel()
+        {
+            PanelData guideData = m_AllPanels.FirstOrDefault(
+                x => x.m_Panel != null &&
+                     x.m_Panel.Type == BasePanel.PanelType.GuideTools &&
+                     !x.m_Panel.AdvancedModePanel);
+
+            if (guideData == null || guideData.m_Panel == null)
+            {
+                Debug.LogWarning("[MR] GuideToolsPanel template not available.");
+                return;
+            }
+
+            int before = m_AllPanels.Count;
+            PanelMapKey key = guideData.m_MapKey;
+            key.m_PanelPrefab = guideData.m_Panel.gameObject;
+            key.m_Basic = true;
+            key.m_Advanced = true;
+            key.m_Multiplayer = true;
+
+            CreatePanel(key, false);
+            if (m_AllPanels.Count <= before)
+            {
+                return;
+            }
+
+            PanelData mrData = m_AllPanels[m_AllPanels.Count - 1];
+            mrData.m_Panel.gameObject.name = "MixedRealityPanel";
+            var controller = mrData.m_Panel.gameObject
+                .AddComponent<MixedRealityPanelController>();
+            controller.Configure();
+
+            mrData.m_Panel.transform.localPosition +=
+                new Vector3(0f, -2.0f, 0f);
         }
 
         void CreatePanel(PanelMapKey key, bool advancedPanel)
