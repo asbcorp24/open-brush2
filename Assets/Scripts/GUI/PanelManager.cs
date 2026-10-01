@@ -582,6 +582,8 @@ namespace TiltBrush
                 }
             }
 
+            CreateRuntimePrimitivesPanel();
+
             // Init rotation.
             m_WandPanelsRotationDiffCount = 4;
             m_WandPanelsRotationDiffHistory = new float[m_WandPanelsRotationDiffCount];
@@ -623,6 +625,39 @@ namespace TiltBrush
             {
                 Shader.SetGlobalFloat("_PanelMipmapBias", m_PanelMipmapBias);
             }
+        }
+
+        void CreateRuntimePrimitivesPanel()
+        {
+            PanelData guideData = m_AllPanels.FirstOrDefault(
+                x => x.m_Panel != null &&
+                     x.m_Panel.Type == BasePanel.PanelType.GuideTools &&
+                     !x.m_Panel.AdvancedModePanel);
+
+            if (guideData == null || guideData.m_Panel == null)
+            {
+                Debug.LogWarning("[Primitives] GuideToolsPanel template not available.");
+                return;
+            }
+
+            int before = m_AllPanels.Count;
+            PanelMapKey key = guideData.m_MapKey;
+            key.m_PanelPrefab = guideData.m_Panel.gameObject;
+            key.m_Basic = true;
+            key.m_Advanced = false;
+            key.m_Multiplayer = true;
+
+            CreatePanel(key, false);
+            if (m_AllPanels.Count <= before)
+            {
+                return;
+            }
+
+            PanelData primitiveData = m_AllPanels[m_AllPanels.Count - 1];
+            primitiveData.m_Panel.gameObject.name = "PrimitivesPanel_Basic";
+            var controller = primitiveData.m_Panel.gameObject
+                .AddComponent<PrimitivePanelController>();
+            controller.Configure();
         }
 
         void CreatePanel(PanelMapKey key, bool advancedPanel)
