@@ -1,8 +1,10 @@
 #if UNITY_EDITOR
 
 using System.IO;
+using System.Linq;
 using UnityEditor;
 using UnityEditor.Build;
+using UnityEditor.PackageManager;
 using UnityEngine;
 
 namespace TiltBrush {
@@ -49,7 +51,7 @@ public static class MultiplayerBuildTools {
       Target = BuildTarget.Android,
       XrSdk = XrSdkMode.OpenXR,
       Location = Path.Combine(root, "OpenBrushViveFocusVisionMultiplayer.apk"),
-      Stamp = "multiplayer-quest",
+      Stamp = "multiplayer-vive-focus-vision",
       UnityOptions = BuildOptions.None,
       Description = "Open Brush Multiplayer VIVE Focus Vision",
       AndroidBuildAppBundle = false
@@ -72,9 +74,11 @@ public static class MultiplayerBuildTools {
         !string.IsNullOrWhiteSpace(App.Config.PhotonVoiceSecrets.ClientId);
     bool standaloneDefine = HasDefine(NamedBuildTarget.Standalone, "MP_PHOTON");
     bool androidDefine = HasDefine(NamedBuildTarget.Android, "MP_PHOTON");
+    bool viveOpenXrFound = PackageInfo.GetAllRegisteredPackages()
+        .Any(p => p.name == "com.htc.upm.vive.openxr");
 
     if (!fusionFound || !voiceFound || !hasFusionId || !hasVoiceId ||
-        !standaloneDefine || !androidDefine) {
+        !standaloneDefine || !androidDefine || !viveOpenXrFound) {
       EditorUtility.DisplayDialog(
           "Multiplayer build is not ready",
           "Required before build:\n" +
@@ -82,7 +86,8 @@ public static class MultiplayerBuildTools {
           "• Photon Voice 2 SDK\n" +
           "• Fusion App ID in Secrets.asset\n" +
           "• Voice App ID in Secrets.asset\n" +
-          "• MP_PHOTON enabled\n\n" +
+          "• MP_PHOTON enabled\n" +
+          "• VIVE OpenXR Plugin installed (com.htc.upm.vive.openxr)\n\n" +
           "Run Open Brush > Multiplayer > Enable Photon Multiplayer after importing the SDKs.",
           "OK");
       return false;
