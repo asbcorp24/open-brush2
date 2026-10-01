@@ -49,19 +49,9 @@ namespace OpenBrush.Multiplayer
 
             Init();
 
-            var fusionSecrets = App.Config != null ? App.Config.PhotonFusionSecrets : null;
-            if (fusionSecrets == null || string.IsNullOrWhiteSpace(fusionSecrets.ClientId))
-            {
-                State = ConnectionState.ERROR;
-                LastError = "[PhotonManager] Photon Fusion App ID is missing. Configure Photon Fusion in Secrets.asset.";
-                ControllerConsoleScript.m_Instance?.AddNewLine(LastError);
-                Debug.LogError(LastError);
-                return;
-            }
-
             m_PhotonAppSettings = new FusionAppSettings
             {
-                AppIdFusion = fusionSecrets.ClientId,
+                AppIdFusion = App.Config.PhotonFusionSecrets.ClientId,
                 FixedRegion = "",
             };
         }
@@ -122,14 +112,6 @@ namespace OpenBrush.Multiplayer
             State = ConnectionState.CONNECTING;
 
             await Task.Yield();
-
-            if (m_PhotonAppSettings == null || string.IsNullOrWhiteSpace(m_PhotonAppSettings.AppIdFusion))
-            {
-                State = ConnectionState.ERROR;
-                LastError = "[PhotonManager] Photon Fusion is not configured.";
-                ControllerConsoleScript.m_Instance?.AddNewLine(LastError);
-                return false;
-            }
 
             var result = await m_Runner.JoinSessionLobby(
                 SessionLobby.Shared,
