@@ -758,6 +758,14 @@ namespace OpenBrush.Multiplayer
             State = ConnectionState.ERROR;
         }
 
+        public void SyncPrimitiveNow(StencilWidget widget)
+        {
+            if (m_Manager is LanManager lan)
+            {
+                lan.SyncPrimitiveNow(widget);
+            }
+        }
+
         public int GetLanPingMilliseconds(int playerId)
         {
             return m_Manager is LanManager lan ? lan.GetPingMilliseconds(playerId) : -1;
