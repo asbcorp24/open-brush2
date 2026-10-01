@@ -231,11 +231,18 @@ public class LanManager : IDataConnectionHandler {
         if (peer == null) {
           if (packet.type != "hello" || packet.room != m_Room) break;
           int id;
+          string userId = string.IsNullOrWhiteSpace(packet.payload)
+              ? Guid.NewGuid().ToString("N") : packet.payload;
           lock (m_PeersLock) {
-            id = m_NextPlayerId++;
+            if (!m_KnownPlayerIds.TryGetValue(userId, out id) || m_Peers.ContainsKey(id)) {
+              id = m_NextPlayerId++;
+              m_KnownPlayerIds[userId] = id;
+            }
             peer = new ClientPeer {
               Id = id,
               Nickname = string.IsNullOrWhiteSpace(packet.nickname) ? "VIVE " + id : packet.nickname,
+              UserId = userId,
+              LastSeenUtc = DateTime.UtcNow,
               Client = client,
               Stream = stream
             };
@@ -275,6 +282,7 @@ public class LanManager : IDataConnectionHandler {
   }
 
   private void ReadServerLoop(CancellationToken token) {
+    string disconnectReason = "Host connection closed.";
     try {
       while (!token.IsCancellationRequested && m_ServerClient != null && m_ServerClient.Connected) {
         Packet packet = ReadPacket(m_ServerStream);
@@ -282,9 +290,10 @@ public class LanManager : IDataConnectionHandler {
         HandleClientPacket(packet);
       }
     } catch (Exception ex) {
-      if (!token.IsCancellationRequested) {
-        LastError = "[LAN] Host connection lost: " + ex.Message;
-        m_MainThread.Enqueue(() => Disconnected?.Invoke());
+      disconnectReason = ex.Message;
+    } finally {
+      if (!token.IsCancellationRequested && !m_ManualDisconnect && !m_IsHost) {
+        BeginReconnect(disconnectReason);
       }
     }
   }
