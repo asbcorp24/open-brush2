@@ -33,6 +33,7 @@ public class PrimitivePropertiesPanelController : MonoBehaviour {
     (PrimitivePropertyAction.AlphaNext, "Transparency"),
     (PrimitivePropertyAction.ToggleWireframe, "Wireframe"),
     (PrimitivePropertyAction.SizeStepNext, "Size step"),
+    (PrimitivePropertyAction.MaterialNext, "Material"),
   };
 
   public void Configure() {
@@ -134,6 +135,9 @@ public class PrimitivePropertiesPanelController : MonoBehaviour {
         OutputWindowScript.Error("Primitive size step: " +
             Mathf.RoundToInt(kSizeStepsMeters[s_SizeStepIndex] * 100f) + " cm");
         break;
+      case PrimitivePropertyAction.MaterialNext:
+        NextMaterial(widget);
+        break;
     }
   }
 
@@ -193,6 +197,7 @@ public class PrimitivePropertiesPanelController : MonoBehaviour {
     cloneVisual.Color = sourceVisual.Color;
     cloneVisual.Alpha = sourceVisual.Alpha;
     cloneVisual.Wireframe = sourceVisual.Wireframe;
+    cloneVisual.MaterialMode = sourceVisual.MaterialMode;
     cloneVisual.Apply();
 
     SelectionManager.m_Instance.LastSelectedStencil = clone;
@@ -219,6 +224,14 @@ public class PrimitivePropertiesPanelController : MonoBehaviour {
     else if (state.Alpha > 0.45f) state.Alpha = 0.35f;
     else state.Alpha = 1f;
     state.Apply();
+    MultiplayerManager.m_Instance?.SyncPrimitiveNow(widget);
+  }
+
+  private static void NextMaterial(StencilWidget widget) {
+    var state = PrimitiveVisualState.GetOrCreate(widget);
+    state.MaterialMode = (PrimitiveMaterialMode)(((int)state.MaterialMode + 1) % 3);
+    state.Apply();
+    OutputWindowScript.Error("Primitive material: " + state.MaterialMode);
     MultiplayerManager.m_Instance?.SyncPrimitiveNow(widget);
   }
 
