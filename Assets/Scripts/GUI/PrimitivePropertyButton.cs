@@ -16,7 +16,8 @@ public enum PrimitivePropertyAction {
   ColorNext,
   AlphaNext,
   ToggleWireframe,
-  SizeStepNext
+  SizeStepNext,
+  MaterialNext
 }
 
 public class PrimitivePropertyButton : BaseButton {
@@ -34,6 +35,7 @@ public class PrimitivePropertyButton : BaseButton {
       PrimitivePropertyAction.AlphaNext => "Icons/visibility_on",
       PrimitivePropertyAction.ToggleWireframe => "Icons/max_edges",
       PrimitivePropertyAction.SizeStepNext => "Icons/grid_thick",
+      PrimitivePropertyAction.MaterialNext => "Icons/colortoggle_hs_l",
       PrimitivePropertyAction.SizeXMinus => "Icons/grid_contract",
       PrimitivePropertyAction.SizeYMinus => "Icons/grid_contract",
       PrimitivePropertyAction.SizeZMinus => "Icons/grid_contract",
