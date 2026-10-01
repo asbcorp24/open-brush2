@@ -301,6 +301,11 @@ namespace TiltBrush
         {
             base.OnUserBeginInteracting();
             m_LockedManipulationAxis = null;
+            if (SelectionManager.m_Instance != null)
+            {
+                SelectionManager.m_Instance.LastSelectedStencil = this;
+                SelectionManager.m_Instance.LastSelectedWidget = this;
+            }
             if (m_TintableMeshes != null)
             {
                 Shader.SetGlobalFloat("_UserIsInteractingWithStencilWidget", 1.0f);
