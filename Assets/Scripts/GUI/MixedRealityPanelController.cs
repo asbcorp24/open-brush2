@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using OpenBrush.MixedReality;
+using OpenBrush.Multiplayer;
 using UnityEngine;
 
 namespace TiltBrush {
