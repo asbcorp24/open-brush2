@@ -474,6 +474,8 @@ namespace TiltBrush
             public float? PrimitiveAlpha { get; set; }
             [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
             public bool? PrimitiveWireframe { get; set; }
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public int? PrimitiveMaterialMode { get; set; }
 
             // True if guide should be pinned on load. Added in M15.
             public bool Pinned { get; set; }
