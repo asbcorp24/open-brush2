@@ -647,7 +647,7 @@ namespace TiltBrush
             PanelMapKey key = guideData.m_MapKey;
             key.m_PanelPrefab = guideData.m_Panel.gameObject;
             key.m_Basic = true;
-            key.m_Advanced = false;
+            key.m_Advanced = true;
             key.m_Multiplayer = true;
 
             CreatePanel(key, false);
@@ -661,6 +661,9 @@ namespace TiltBrush
             var controller = primitiveData.m_Panel.gameObject
                 .AddComponent<PrimitivePanelController>();
             controller.Configure();
+
+            primitiveData.m_Panel.transform.localPosition +=
+                new Vector3(-2.2f, 0f, 0f);
         }
 
         void CreateRuntimePrimitivePropertiesPanel()
