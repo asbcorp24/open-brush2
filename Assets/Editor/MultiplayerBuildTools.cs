@@ -34,13 +34,13 @@ public static class MultiplayerBuildTools {
     Debug.Log("[Multiplayer] Windows Observer build: " + options.Location);
   }
 
-  [MenuItem("Open Brush/Multiplayer/Build Quest Multiplayer APK")]
-  public static void BuildQuestMultiplayer() {
+  [MenuItem("Open Brush/Multiplayer/Build VIVE Focus Vision Multiplayer APK")]
+  public static void BuildViveFocusVisionMultiplayer() {
     if (!ValidatePhotonBeforeBuild()) {
       return;
     }
 
-    string root = Path.GetFullPath(Path.Combine(Application.dataPath, "..", kBuildRoot, "Quest"));
+    string root = Path.GetFullPath(Path.Combine(Application.dataPath, "..", kBuildRoot, "ViveFocusVision"));
     Directory.CreateDirectory(root);
 
     var options = new BuildTiltBrush.TiltBuildOptions {
@@ -48,15 +48,15 @@ public static class MultiplayerBuildTools {
       Il2Cpp = true,
       Target = BuildTarget.Android,
       XrSdk = XrSdkMode.OpenXR,
-      Location = Path.Combine(root, "OpenBrushMultiplayer.apk"),
+      Location = Path.Combine(root, "OpenBrushViveFocusVisionMultiplayer.apk"),
       Stamp = "multiplayer-quest",
       UnityOptions = BuildOptions.None,
-      Description = "Open Brush Multiplayer Quest",
+      Description = "Open Brush Multiplayer VIVE Focus Vision",
       AndroidBuildAppBundle = false
     };
 
     BuildTiltBrush.DoBuild(options);
-    Debug.Log("[Multiplayer] Quest multiplayer APK: " + options.Location);
+    Debug.Log("[Multiplayer] VIVE Focus Vision multiplayer APK: " + options.Location);
   }
 
   private static bool ValidatePhotonBeforeBuild() {
