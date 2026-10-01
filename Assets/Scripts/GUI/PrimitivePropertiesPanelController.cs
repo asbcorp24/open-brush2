@@ -82,7 +82,9 @@ public class PrimitivePropertiesPanelController : MonoBehaviour {
   private static StencilWidget SelectedPrimitive {
     get {
       if (SelectionManager.m_Instance == null) return null;
-      return SelectionManager.m_Instance.LastSelectedStencil;
+      var selected = SelectionManager.m_Instance.SelectedWidgets
+          .OfType<StencilWidget>().FirstOrDefault();
+      return selected ?? SelectionManager.m_Instance.LastSelectedStencil;
     }
   }
 
@@ -144,6 +146,14 @@ public class PrimitivePropertiesPanelController : MonoBehaviour {
     SketchMemoryScript.m_Instance.PerformAndRecordCommand(
         new ResizeStencilCommand(widget, extents));
     MultiplayerManager.m_Instance?.SyncPrimitiveNow(widget);
+    ShowDimensions(widget);
+  }
+
+  private static void ShowDimensions(StencilWidget widget) {
+    float metersPerCanvasUnit = App.Scene.Pose.scale / App.METERS_TO_UNITS;
+    Vector3 e = widget.Extents * metersPerCanvasUnit * 100f;
+    OutputWindowScript.Error(
+        $"Primitive size: X {e.x:F1} cm  Y {e.y:F1} cm  Z {e.z:F1} cm");
   }
 
   private static void SnapToGrid(StencilWidget widget) {
