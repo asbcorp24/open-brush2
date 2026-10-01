@@ -706,6 +706,11 @@ namespace TiltBrush
 
         void CreateRuntimeMixedRealityPanel()
         {
+            if (!App.Config.IsMobileHardware)
+            {
+                return;
+            }
+
             PanelData guideData = m_AllPanels.FirstOrDefault(
                 x => x.m_Panel != null &&
                      x.m_Panel.Type == BasePanel.PanelType.GuideTools &&
