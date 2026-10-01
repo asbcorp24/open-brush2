@@ -119,6 +119,7 @@ namespace TiltBrush
             AdminPanelViewOnly = 20302,
             Primitives = 20303,
             PrimitiveProperties = 20304,
+            MixedReality = 20305,
         }
 
         private enum FixedTransitionState
