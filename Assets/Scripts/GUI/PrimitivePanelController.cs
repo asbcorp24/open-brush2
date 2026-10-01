@@ -24,6 +24,7 @@ public class PrimitivePanelController : MonoBehaviour {
 
   public void Configure() {
     var panel = GetComponent<BasePanel>();
+    panel?.SetRuntimePanelType(BasePanel.PanelType.Primitives);
     panel?.SetRuntimePanelDescription("PRIMITIVES");
 
     var allButtons = GetComponentsInChildren<BaseButton>(true).ToList();
