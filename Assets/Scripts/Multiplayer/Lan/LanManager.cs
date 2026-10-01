@@ -525,6 +525,21 @@ public class LanManager : IDataConnectionHandler {
     }
   }
 
+  private void SendExistingPrimitivesToPlayer(int playerId) {
+    if (!m_IsHost || WidgetManager.m_Instance == null) return;
+
+    foreach (var widget in WidgetManager.m_Instance.StencilWidgets.ToArray()) {
+      if (widget == null || !widget.gameObject.activeSelf) continue;
+      var marker = EnsurePrimitiveId(widget);
+      var state = CapturePrimitiveState(widget, marker.Id, true);
+      SendToPlayer(playerId, new Packet {
+        type = "primitive_create",
+        targetId = playerId,
+        payload = JsonUtility.ToJson(state)
+      });
+    }
+  }
+
   private void ApplyPrimitiveState(string payload, bool createIfMissing) {
     if (string.IsNullOrWhiteSpace(payload)) return;
     PrimitiveState state = JsonUtility.FromJson<PrimitiveState>(payload);
