@@ -21,6 +21,8 @@ namespace TiltBrush
         [SerializeField] private StencilType m_Type;
         private bool m_PrimitivePropertyMode;
         private PrimitivePropertyAction m_PrimitivePropertyAction;
+        private bool m_MixedRealityMode;
+        private MixedRealityControlAction m_MixedRealityAction;
 
         public StencilType Type
         {
@@ -55,8 +57,34 @@ namespace TiltBrush
             gameObject.name = "PanelButton_PrimitiveProperty_" + action;
         }
 
+        public void ConfigureMixedReality(
+            MixedRealityControlAction action, string description, string iconPath)
+        {
+            m_MixedRealityMode = true;
+            m_MixedRealityAction = action;
+            m_LocalizedDescription = new UnityEngine.Localization.LocalizedString();
+            SetDescriptionText(description);
+
+            Texture2D texture = Resources.Load<Texture2D>(iconPath);
+            if (texture != null)
+            {
+                m_ButtonTexture = texture;
+                m_CurrentButtonTexture = texture;
+                ConfigureTextureAtlas();
+            }
+
+            gameObject.name = "PanelButton_MixedReality_" + action;
+        }
+
         override protected void OnButtonPressed()
         {
+            if (m_MixedRealityMode)
+            {
+                MixedRealityPanelController.ApplyAction(m_MixedRealityAction);
+                SketchControlsScript.m_Instance.EatGazeObjectInput();
+                return;
+            }
+
             if (m_PrimitivePropertyMode)
             {
                 PrimitivePropertiesPanelController.ApplyAction(m_PrimitivePropertyAction);
