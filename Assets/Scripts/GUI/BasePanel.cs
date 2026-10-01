@@ -143,6 +143,11 @@ namespace TiltBrush
         [SerializeField] protected string m_PanelDescription;
         [SerializeField] protected LocalizedString m_LocalizedPanelDescription;
 
+        public void SetRuntimePanelDescription(string description)
+        {
+            m_PanelDescription = description;
+        }
+
         public string PanelDescription
         {
             get
