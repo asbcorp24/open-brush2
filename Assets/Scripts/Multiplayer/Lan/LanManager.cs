@@ -279,7 +279,10 @@ public class LanManager : IDataConnectionHandler {
           }
 
           var captured = peer;
-          m_MainThread.Enqueue(() => CreateRemotePlayer(captured.Id, captured.Nickname));
+          m_MainThread.Enqueue(() => {
+            CreateRemotePlayer(captured.Id, captured.Nickname);
+            SendExistingPrimitivesToPlayer(captured.Id);
+          });
           Broadcast(new Packet { type = "player_joined", playerId = id, nickname = peer.Nickname }, id);
           Broadcast(new Packet { type = "player_count", playerCount = m_PlayerCount });
           continue;
