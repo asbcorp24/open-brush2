@@ -35,6 +35,7 @@ public class LanManager : IDataConnectionHandler {
     public Color color;
     public float alpha;
     public bool wireframe;
+    public int materialMode;
     public bool visible;
   }
 
@@ -583,6 +584,7 @@ public class LanManager : IDataConnectionHandler {
     visual.Color = state.color == default ? Color.white : state.color;
     visual.Alpha = state.alpha <= 0f ? 1f : state.alpha;
     visual.Wireframe = state.wireframe;
+    visual.MaterialMode = (PrimitiveMaterialMode)state.materialMode;
     visual.Apply();
 
     if (state.visible) {
@@ -608,6 +610,7 @@ public class LanManager : IDataConnectionHandler {
       color = visual.Color,
       alpha = visual.Alpha,
       wireframe = visual.Wireframe,
+      materialMode = (int)visual.MaterialMode,
       visible = visible
     };
   }
