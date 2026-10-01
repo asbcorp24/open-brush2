@@ -2,6 +2,7 @@
 
 using System.IO;
 using UnityEditor;
+using UnityEditor.Build;
 using UnityEngine;
 
 namespace TiltBrush {
