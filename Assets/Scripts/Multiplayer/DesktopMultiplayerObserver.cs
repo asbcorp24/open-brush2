@@ -256,6 +256,21 @@ public class DesktopMultiplayerObserver : MonoBehaviour {
     SetStatus("Saving shared sketch: " + fileName);
   }
 
+  private void AutoSaveSharedSketch() {
+    if (SaveLoadScript.m_Instance == null ||
+        !SaveLoadScript.m_Instance.IsSavingAllowed() ||
+        SketchMemoryScript.m_Instance == null ||
+        SketchMemoryScript.m_Instance.StrokeCount == 0) {
+      return;
+    }
+
+    string room = NormalizeRoomCode(m_RoomInput.text);
+    string fileName = "Autosave_" + (string.IsNullOrEmpty(room) ? "Room" : room) +
+        "_" + DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
+    StartCoroutine(SaveLoadScript.m_Instance.SaveAs(fileName));
+    SetStatus("Autosaved classroom: " + fileName);
+  }
+
   public void ClearSharedStrokes() {
     var manager = MultiplayerManager.m_Instance;
     if (!CanAdmin(manager)) {
