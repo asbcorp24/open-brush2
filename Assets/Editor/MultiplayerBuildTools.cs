@@ -1,6 +1,9 @@
 #if UNITY_EDITOR
 
+using System;
+using System.Collections;
 using System.IO;
+using System.Reflection;
 using System.Linq;
 using UnityEditor;
 using UnityEditor.PackageManager;
@@ -40,6 +43,8 @@ public static class MultiplayerBuildTools {
     if (!ValidateLanBuild(true)) {
       return;
     }
+
+    EnableVivePassthroughFeature();
 
     string root = Path.GetFullPath(Path.Combine(Application.dataPath, "..", kBuildRoot, "ViveFocusVision"));
     Directory.CreateDirectory(root);
