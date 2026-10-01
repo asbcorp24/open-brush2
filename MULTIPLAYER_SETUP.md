@@ -180,3 +180,32 @@ credentials that must belong to your Photon account and therefore are not commit
 The Photon SDK binaries/packages also remain an external dependency. The editor
 validator deliberately refuses to enable/build multiplayer when those SDK types are
 missing.
+
+
+# Teacher controls in Windows Observer
+
+When the Windows client owns the room, the observer panel now provides classroom
+administration controls:
+
+- **All view-only** — prevent all connected VR participants from drawing.
+- **Allow all draw** — re-enable drawing for everyone.
+- **Mute all / Unmute all** — control room voice for remote participants.
+- **Clear strokes** — deletes every active stroke by issuing normal
+  `DeleteStrokeCommand` commands. Because these are recorded through
+  `SketchMemoryScript`, the existing multiplayer command hook broadcasts the
+  deletions to all connected clients.
+- **Save sketch** — saves the synchronized room state to a local `.tilt` file on
+  the teacher PC using a timestamped `Multiplayer_<room>_...` filename.
+
+Each participant also receives an admin row with:
+
+- **View only / Allow draw**
+- **Mute / Unmute**
+- **Kick**
+- **Make owner**
+
+These participant controls are enabled only when the Windows client is the current
+room owner. Ownership can be transferred to another participant.
+
+The teacher window can be hidden/shown with **F2** while the live 3D scene remains
+visible behind it.
