@@ -25,6 +25,17 @@ public class LanManager : IDataConnectionHandler {
   private const int MaxFrameBytes = 32 * 1024 * 1024;
 
   [Serializable]
+  private class PrimitiveState {
+    public string id;
+    public int stencilType;
+    public Vector3 localPosition;
+    public Quaternion localRotation;
+    public float size;
+    public Vector3 extents;
+    public bool visible;
+  }
+
+  [Serializable]
   private class Packet {
     public string type;
     public int playerId;
@@ -319,6 +330,9 @@ public class LanManager : IDataConnectionHandler {
       case "delete":
       case "undo":
       case "redo":
+      case "primitive_create":
+      case "primitive_move":
+      case "primitive_visibility":
         Broadcast(packet, source.Id);
         m_MainThread.Enqueue(() => ApplyCommandPacket(packet));
         break;
@@ -369,6 +383,9 @@ public class LanManager : IDataConnectionHandler {
       case "delete":
       case "undo":
       case "redo":
+      case "primitive_create":
+      case "primitive_move":
+      case "primitive_visibility":
         m_MainThread.Enqueue(() => ApplyCommandPacket(packet));
         break;
       case "scene_chunk":
@@ -485,6 +502,12 @@ public class LanManager : IDataConnectionHandler {
           SketchMemoryScript.m_Instance.PerformAndRecordNetworkCommand(
               new DeleteStrokeCommand(stroke, commandId, packet.timestamp));
         }
+      } else if (packet.type == "primitive_create") {
+        ApplyPrimitiveState(packet.payload, createIfMissing: true);
+      } else if (packet.type == "primitive_move") {
+        ApplyPrimitiveState(packet.payload, createIfMissing: false);
+      } else if (packet.type == "primitive_visibility") {
+        ApplyPrimitiveState(packet.payload, createIfMissing: false);
       } else if (packet.type == "undo" || packet.type == "redo") {
         if (!Guid.TryParse(packet.commandGuid, out Guid commandId)) return;
         var command = SketchMemoryScript.m_Instance.GetAllOperations()
@@ -497,6 +520,74 @@ public class LanManager : IDataConnectionHandler {
     } catch (Exception ex) {
       Debug.LogError("[LAN] Apply command failed: " + ex);
     }
+  }
+
+  private void ApplyPrimitiveState(string payload, bool createIfMissing) {
+    if (string.IsNullOrWhiteSpace(payload)) return;
+    PrimitiveState state = JsonUtility.FromJson<PrimitiveState>(payload);
+    if (state == null || string.IsNullOrWhiteSpace(state.id)) return;
+
+    NetworkPrimitiveId marker = UnityEngine.Object.FindObjectsByType<NetworkPrimitiveId>(
+        FindObjectsInactive.Include, FindObjectsSortMode.None)
+        .FirstOrDefault(x => x.Id == state.id);
+
+    StencilWidget widget = marker != null ? marker.GetComponent<StencilWidget>() : null;
+    if (widget == null && createIfMissing) {
+      var type = (StencilType)state.stencilType;
+      GrabWidget prefab = WidgetManager.m_Instance.GetStencilPrefab(type);
+      if (prefab == null) return;
+
+      TrTransform worldXf = TrTransform.TRS(
+          App.ActiveCanvas.transform.TransformPoint(state.localPosition),
+          App.ActiveCanvas.transform.rotation * state.localRotation,
+          state.size);
+
+      var create = new CreateWidgetCommand(prefab, worldXf, null, true);
+      SketchMemoryScript.m_Instance.PerformAndRecordNetworkCommand(create);
+      widget = create.Widget as StencilWidget;
+      if (widget == null) return;
+
+      marker = widget.gameObject.GetComponent<NetworkPrimitiveId>();
+      if (marker == null) marker = widget.gameObject.AddComponent<NetworkPrimitiveId>();
+      marker.Id = state.id;
+    }
+
+    if (widget == null) return;
+
+    widget.LocalTransform = TrTransform.TRS(
+        state.localPosition, state.localRotation, state.size);
+    try { widget.Extents = state.extents; } catch { }
+    if (state.visible) {
+      if (!widget.gameObject.activeSelf) {
+        widget.gameObject.SetActive(true);
+        widget.RestoreFromToss();
+      }
+    } else {
+      widget.Hide();
+    }
+  }
+
+  private static PrimitiveState CapturePrimitiveState(StencilWidget widget, string id, bool visible = true) {
+    TrTransform xf = widget.LocalTransform;
+    return new PrimitiveState {
+      id = id,
+      stencilType = (int)widget.Type,
+      localPosition = xf.translation,
+      localRotation = xf.rotation,
+      size = xf.scale,
+      extents = widget.Extents,
+      visible = visible
+    };
+  }
+
+  private static NetworkPrimitiveId EnsurePrimitiveId(StencilWidget widget, string preferredId = null) {
+    if (widget == null) return null;
+    var marker = widget.GetComponent<NetworkPrimitiveId>();
+    if (marker == null) marker = widget.gameObject.AddComponent<NetworkPrimitiveId>();
+    if (string.IsNullOrWhiteSpace(marker.Id)) {
+      marker.Id = string.IsNullOrWhiteSpace(preferredId) ? Guid.NewGuid().ToString("N") : preferredId;
+    }
+    return marker;
   }
 
   private void ApplyColocation(string payload) {
@@ -622,6 +713,42 @@ public class LanManager : IDataConnectionHandler {
   }
 
   public async Task<bool> PerformCommand(BaseCommand command) {
+    if (command is CreateWidgetCommand createWidget &&
+        createWidget.Widget is StencilWidget createdStencil) {
+      var marker = EnsurePrimitiveId(createdStencil, command.Guid.ToString("N"));
+      var state = CapturePrimitiveState(createdStencil, marker.Id, true);
+      SendRoomPacket(new Packet {
+        type = "primitive_create",
+        payload = JsonUtility.ToJson(state),
+        commandGuid = command.Guid.ToString()
+      });
+      return true;
+    }
+
+    if (command is MoveWidgetCommand moveWidget &&
+        moveWidget.Widget is StencilWidget movedStencil) {
+      var marker = EnsurePrimitiveId(movedStencil);
+      var state = CapturePrimitiveState(movedStencil, marker.Id, true);
+      SendRoomPacket(new Packet {
+        type = "primitive_move",
+        payload = JsonUtility.ToJson(state),
+        commandGuid = command.Guid.ToString()
+      });
+      return true;
+    }
+
+    if (command is HideWidgetCommand hideWidget &&
+        hideWidget.Widget is StencilWidget hiddenStencil) {
+      var marker = EnsurePrimitiveId(hiddenStencil);
+      var state = CapturePrimitiveState(hiddenStencil, marker.Id, false);
+      SendRoomPacket(new Packet {
+        type = "primitive_visibility",
+        payload = JsonUtility.ToJson(state),
+        commandGuid = command.Guid.ToString()
+      });
+      return true;
+    }
+
     if (command is BrushStrokeCommand brush && brush.m_Stroke != null) {
       byte[] bytes = await MultiplayerStrokeSerialization.SerializeAndCompressMemoryListAsync(
           new List<Stroke> { brush.m_Stroke });
@@ -657,13 +784,33 @@ public class LanManager : IDataConnectionHandler {
   public Task<bool> CheckStrokeReception(Stroke stroke, int playerId) => Task.FromResult(true);
 
   public Task<bool> UndoCommand(BaseCommand command) {
+    if (TrySendPrimitiveStateAfterUndoRedo(command)) return Task.FromResult(true);
     SendRoomPacket(new Packet { type = "undo", commandGuid = command.Guid.ToString() });
     return Task.FromResult(true);
   }
 
   public Task<bool> RedoCommand(BaseCommand command) {
+    if (TrySendPrimitiveStateAfterUndoRedo(command)) return Task.FromResult(true);
     SendRoomPacket(new Packet { type = "redo", commandGuid = command.Guid.ToString() });
     return Task.FromResult(true);
+  }
+
+  private bool TrySendPrimitiveStateAfterUndoRedo(BaseCommand command) {
+    StencilWidget widget = null;
+    if (command is MoveWidgetCommand move) widget = move.Widget as StencilWidget;
+    else if (command is CreateWidgetCommand create) widget = create.Widget as StencilWidget;
+    else if (command is HideWidgetCommand hide) widget = hide.Widget as StencilWidget;
+    if (widget == null) return false;
+
+    var marker = EnsurePrimitiveId(widget, command.Guid.ToString("N"));
+    bool visible = widget.gameObject.activeSelf && !widget.IsHiding();
+    var state = CapturePrimitiveState(widget, marker.Id, visible);
+    SendRoomPacket(new Packet {
+      type = visible ? "primitive_move" : "primitive_visibility",
+      payload = JsonUtility.ToJson(state),
+      commandGuid = command.Guid.ToString()
+    });
+    return true;
   }
 
   public Task<bool> RpcPublishManualColocationReference(ManualColocationReference reference) {
