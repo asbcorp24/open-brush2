@@ -15962,7 +15962,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b989d2f19099ac044b955d3a6a62dea9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_MultiplayerType: 2
+  m_MultiplayerType: 3
   CurrentRoomName: 
   CurrentRoomData:
     roomName: 
