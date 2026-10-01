@@ -66,13 +66,323 @@ For more information, read the
 
 ---
 
+# VIVE Focus Vision Classroom Build
+
+This fork contains a fully offline classroom multiplayer mode for **HTC VIVE Focus Vision** and a **Windows Teacher Observer**.
+
+The active classroom multiplayer backend is **LAN only**. Photon, Fusion, Photon Voice and Photon App IDs are **not required** for this build.
+
+## Current required Unity version
+
+Use the Unity version declared by the project:
+
+```text
+Unity 6000.6.0f1
+```
+
+The older Unity version mentioned later in the upstream README is historical and should not be used for this fork.
+
+## Architecture
+
+```text
+VIVE Focus Vision 1 ─┐
+VIVE Focus Vision 2 ─┤
+VIVE Focus Vision 3 ─┼── local Wi-Fi / LAN ── Windows Teacher PC
+VIVE Focus Vision 4 ─┘
+```
+
+Internet access is not required after installation. A normal Wi-Fi router or access point is enough.
+
+LAN ports:
+
+```text
+UDP 45870   classroom discovery
+TCP 45871   multiplayer traffic
+```
+
+Disable AP/client isolation on the Wi-Fi access point.
+
+---
+
+## Windows installation and build
+
+Install:
+
+- Git
+- Unity Hub
+- Unity **6000.6.0f1**
+- Android Build Support
+  - Android SDK & NDK Tools
+  - OpenJDK
+- Windows Build Support
+
+Clone:
+
+```powershell
+git clone https://github.com/asbcorp24/open-brush2.git
+cd open-brush2
+git checkout main
+git pull
+```
+
+Open the project in Unity Hub with **Unity 6000.6.0f1**.
+
+Wait for Package Manager to import all dependencies, including:
+
+```text
+com.htc.upm.vive.openxr 2.5.1
+```
+
+Open:
+
+```text
+Assets/Scenes/Main.unity
+```
+
+### Android / VIVE OpenXR settings
+
+Open:
+
+```text
+Edit
+→ Project Settings
+→ XR Plug-in Management
+→ Android
+→ OpenXR
+```
+
+Enable the VIVE/OpenXR features required by the headset.
+
+For Mixed Reality / passthrough, enable:
+
+```text
+VIVE XR Passthrough
+```
+
+Run:
+
+```text
+OpenXR
+→ Project Validation
+→ Fix All
+```
+
+Recommended first-test Android settings:
+
+```text
+Scripting Backend: IL2CPP
+Architecture: ARM64
+Graphics API: OpenGLES3
+Vulkan: disabled for the first validation build
+```
+
+### Build the Windows Teacher Observer
+
+Use:
+
+```text
+Open Brush
+→ Multiplayer
+→ Build Windows Observer
+```
+
+Output:
+
+```text
+Builds/Multiplayer/WindowsObserver/OpenBrushObserver.exe
+```
+
+Keep the whole `WindowsObserver` directory together; do not copy only the EXE.
+
+### Build the VIVE Focus Vision APK
+
+Use:
+
+```text
+Open Brush
+→ Multiplayer
+→ Build VIVE Focus Vision Multiplayer APK
+```
+
+Output:
+
+```text
+Builds/Multiplayer/ViveFocusVision/OpenBrushViveFocusVisionMultiplayer.apk
+```
+
+The build uses:
+
+```text
+Android
+ARM64
+OpenXR
+IL2CPP
+APK
+```
+
+The build script also attempts to enable the VIVE XR Passthrough OpenXR feature automatically.
+
+---
+
+## Install the APK on VIVE Focus Vision
+
+Enable developer/USB debugging on the headset and connect it by USB.
+
+Check the connection:
+
+```powershell
+adb devices
+```
+
+Install or update:
+
+```powershell
+adb install -r Builds\Multiplayer\ViveFocusVision\OpenBrushViveFocusVisionMultiplayer.apk
+```
+
+If ADB shows `unauthorized`, accept the USB debugging prompt inside the headset.
+
+---
+
+## Windows Firewall
+
+Run PowerShell as Administrator:
+
+```powershell
+New-NetFirewallRule -DisplayName "OpenBrush LAN Discovery" -Direction Inbound -Protocol UDP -LocalPort 45870 -Action Allow
+New-NetFirewallRule -DisplayName "OpenBrush LAN Multiplayer" -Direction Inbound -Protocol TCP -LocalPort 45871 -Action Allow
+```
+
+---
+
+## Ubuntu development / APK build
+
+Install the basic tools:
+
+```bash
+sudo apt update
+sudo apt install -y git git-lfs curl wget unzip ca-certificates gnupg adb
+```
+
+Install Unity Hub using Unity's official Linux repository, then install:
+
+```text
+Unity 6000.6.0f1
+Android Build Support
+Android SDK & NDK Tools
+OpenJDK
+Linux Build Support
+```
+
+Clone the project:
+
+```bash
+git clone https://github.com/asbcorp24/open-brush2.git
+cd open-brush2
+git checkout main
+git pull
+```
+
+Open the project in Unity Hub.
+
+The VIVE Focus Vision APK can be built on Ubuntu from the same menu:
+
+```text
+Open Brush
+→ Multiplayer
+→ Build VIVE Focus Vision Multiplayer APK
+```
+
+Output:
+
+```text
+Builds/Multiplayer/ViveFocusVision/OpenBrushViveFocusVisionMultiplayer.apk
+```
+
+Install from Ubuntu:
+
+```bash
+adb devices
+adb install -r Builds/Multiplayer/ViveFocusVision/OpenBrushViveFocusVisionMultiplayer.apk
+```
+
+If a Linux/Ubuntu Teacher Observer is required, add/use a dedicated Linux Standalone build. The current classroom Observer menu command targets `StandaloneWindows64` and creates a Windows EXE.
+
+---
+
+## Classroom startup
+
+1. Connect the Windows Teacher PC and all VIVE Focus Vision headsets to the same Wi-Fi.
+2. Start `OpenBrushObserver.exe`.
+3. Click **START CLASS**.
+4. The PC starts advertising the classroom over UDP 45870 and hosts the session over TCP 45871.
+5. Dedicated VIVE builds automatically discover and join the classroom.
+6. No WAN/internet connection is required.
+
+The Teacher Observer shows participant state and ping and supports room administration, save/clear, view-only, kick, ownership and Mixed Reality controls.
+
+---
+
+## Mixed Reality / passthrough
+
+The VIVE build includes a **MIXED REALITY** panel with:
+
+```text
+VR
+AR 25%
+AR 50%
+AR 75%
+AR 100%
+```
+
+The Windows Teacher Observer includes:
+
+```text
+VR ALL
+AR 25%
+AR 50%
+AR 75%
+AR 100%
+```
+
+and per-headset AR/VR switching.
+
+Passthrough uses the VIVE OpenXR planar passthrough underlay and remains completely local to the headset.
+
+---
+
+## Offline verification
+
+To verify that the classroom does not depend on the Internet:
+
+1. Connect the PC and at least two VIVE headsets to the Wi-Fi router.
+2. Disconnect the router WAN/Internet connection.
+3. Start the Teacher Observer.
+4. Click **START CLASS**.
+5. Start Open Brush on the headsets.
+6. Verify automatic joining.
+7. Draw on one headset and verify synchronization on the other headset and PC.
+8. Move/resize a primitive and verify synchronization.
+9. Test **AR 100%** and **VR ALL** from the teacher PC.
+10. Test save, autosave, view-only and reconnect.
+
+If all of the above works with WAN disconnected, the classroom installation is operating fully offline.
+
+For implementation details see:
+
+```text
+MULTIPLAYER_SETUP.md
+```
+
+---
+
 # Building the application
 
 Get the Open Brush open-source application running on your own devices.
 
 ### Prerequisites
 
-*   [Unity 2022.3.34f1](unityhub://2022.3.34f1/4886f5360533)
+*   **This fork currently requires Unity 6000.6.0f1** (see `ProjectSettings/ProjectVersion.txt`). The upstream 2022.3 instruction is outdated for this repository.
 *   [Python 3](https://www.python.org/downloads/) (Optional —
     needed only if you wish to run the scripts in the `Support/bin` directory)
     Tested with Python 3.8.
@@ -225,6 +535,9 @@ Follow these steps to build your app for Oculus Quest:
 1.  Run `adb install com.Icosa.OpenBrush.apk`.
 
 ### Enabling Multiplayer Photon Fusion and Photon Voice
+
+> **Classroom fork note:** The active VIVE Focus Vision classroom multiplayer in this repository uses the offline LAN backend. Photon/Fusion/Voice/App IDs are not required for the classroom build. The section below is retained only as upstream/historical documentation for the optional Photon backend.
+
 
 1.  Download and install both [Photon Fusion 2.0.3 SDK](https://doc.photonengine.com/fusion/current/getting-started/sdk-download) and [Photon Voice 2](https://assetstore.unity.com/packages/tools/audio/photon-voice-2-130518?srsltid=AfmBOoqJifR_h-nIp73IL5F83GSvOmk3WqKytS1YsxrEUuZqVfAv5kQ9) If those versions aren't available get the closest version you can but be aware we have only tested on the exact versions we've listed here.
 1.  Alternatively Download [Photon Fusion 2.0.3 SDK + Photon Voice 2] (https://github.com/icosa-mirror/photon-fusion/releases/tag/Fusion_v2_Voice_2) copy it's content to the Assets Folder.
