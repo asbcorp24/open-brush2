@@ -263,3 +263,72 @@ files remain compatible because the added metadata fields are optional.
 
 The last primitive grabbed with a controller automatically becomes the active
 primitive for this properties panel.
+
+
+## VIVE Focus Vision Mixed Reality / Passthrough
+
+The VIVE Focus Vision build now includes an optional **MIXED REALITY** panel.
+
+Modes:
+
+- VR
+- AR 25%
+- AR 50%
+- AR 75%
+- AR 100%
+
+AR uses VIVE OpenXR planar passthrough as an **Underlay**. The headset camera
+background is switched to a transparent solid-color clear so the real-world
+passthrough is visible behind Open Brush strokes, primitives and other virtual
+content.
+
+The runtime adapter resolves:
+
+`VIVE.OpenXR.Passthrough.PassthroughAPI`
+
+at runtime and calls `CreatePlanarPassthrough(LayerType.Underlay)`. Reflection
+is used intentionally so the Windows Observer/editor code is not hard-linked to
+the HTC runtime types.
+
+The selected MR mode and amount are stored in local PlayerPrefs on the headset.
+
+### Teacher MR controls
+
+Windows Teacher Observer includes:
+
+- **VR ALL**
+- **AR 25%**
+- **AR 50%**
+- **AR 75%**
+- **AR 100%**
+
+Each participant row also shows the reported state, for example:
+
+`VIVE 03 • 12 ms • excellent • AR 75%`
+
+and provides an individual **Switch AR / Switch VR** control.
+
+Teacher MR commands travel only through the existing LAN TCP connection. No
+internet service is involved.
+
+After applying a remote MR command, the headset sends its current MR state back
+to the teacher PC. It also reports its saved state after joining or reconnecting.
+
+### OpenXR feature
+
+HTC VIVE OpenXR Plugin 2.5.1 or newer is required.
+
+For the Android target, **VIVE XR Passthrough** must be enabled under:
+
+`Project Settings > XR Plug-in Management > OpenXR`
+
+The VIVE Focus Vision multiplayer build command attempts to find and enable the
+VIVE/HTC passthrough OpenXR feature automatically after the package has been
+imported. If Unity has not yet generated the feature objects, the build log
+prints a warning and the feature can be enabled manually.
+
+### Offline behavior
+
+Passthrough is produced locally by the VIVE Focus Vision cameras/OpenXR runtime.
+It does not require WAN/internet connectivity. Teacher commands also remain on
+the classroom LAN.
