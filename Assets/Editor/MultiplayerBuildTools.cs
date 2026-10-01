@@ -65,6 +65,35 @@ public static class MultiplayerBuildTools {
     Debug.Log("[Multiplayer] VIVE Focus Vision multiplayer APK: " + options.Location);
   }
 
+  [MenuItem("Open Brush/Multiplayer/Build XREAL Beam Pro Multiplayer APK")]
+  public static void BuildXrealBeamProMultiplayer() {
+    if (!ValidateXrealSdk()) {
+      return;
+    }
+
+    ConfigureXrealAndroidSettings();
+
+    string root = Path.GetFullPath(Path.Combine(
+        Application.dataPath, "..", kBuildRoot, "XrealBeamPro"));
+    Directory.CreateDirectory(root);
+
+    var options = new BuildTiltBrush.TiltBuildOptions {
+      AutoProfile = false,
+      Il2Cpp = true,
+      Target = BuildTarget.Android,
+      XrSdk = XrSdkMode.XREAL,
+      Location = Path.Combine(root, "OpenBrushXrealBeamPro.apk"),
+      Stamp = "multiplayer-xreal-beam-pro",
+      UnityOptions = BuildOptions.None,
+      Description = "Open Brush Multiplayer XREAL Beam Pro",
+      AndroidBuildAppBundle = false,
+      AndroidTargetSdkVersion = AndroidSdkVersions.AndroidApiLevelAuto
+    };
+
+    BuildTiltBrush.DoBuild(options);
+    Debug.Log("[Multiplayer] XREAL Beam Pro APK: " + options.Location);
+  }
+
   private static void EnableVivePassthroughFeature() {
     try {
       Type settingsType = AppDomain.CurrentDomain.GetAssemblies()
@@ -143,6 +172,39 @@ public static class MultiplayerBuildTools {
       Debug.LogWarning("[MR] Automatic passthrough enable failed: " +
           ex.GetBaseException().Message);
     }
+  }
+
+  private static bool ValidateXrealSdk() {
+    bool xrealFound = PackageInfo.GetAllRegisteredPackages()
+        .Any(p => p.name != null &&
+            p.name.StartsWith("com.xreal.xr", StringComparison.OrdinalIgnoreCase));
+
+    if (!xrealFound) {
+      EditorUtility.DisplayDialog(
+          "XREAL Beam Pro build is not ready",
+          "Import the official XREAL SDK for Unity first.\n\n" +
+          "Recommended: XREAL SDK 3.1.0\n" +
+          "Package Manager > + > Add package from tarball > com.xreal.xr.tar.gz\n\n" +
+          "Then enable the XREAL XR Plug-in for Android and run Project Validation.",
+          "OK");
+      return false;
+    }
+
+    return true;
+  }
+
+  private static void ConfigureXrealAndroidSettings() {
+    PlayerSettings.defaultInterfaceOrientation = UIOrientation.Portrait;
+    PlayerSettings.SetScriptingBackend(
+        BuildTargetGroup.Android, ScriptingImplementation.IL2CPP);
+    PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
+    PlayerSettings.Android.minSdkVersion = AndroidSdkVersions.AndroidApiLevel29;
+    PlayerSettings.Android.targetSdkVersion = AndroidSdkVersions.AndroidApiLevelAuto;
+    PlayerSettings.SetGraphicsAPIs(BuildTarget.Android,
+        new[] { UnityEngine.Rendering.GraphicsDeviceType.OpenGLES3 });
+
+    Debug.Log(
+        "[XREAL] Android settings: Portrait, IL2CPP, ARM64, min API 29, OpenGLES3.");
   }
 
   private static bool ValidateLanBuild(bool requireViveOpenXr) {
