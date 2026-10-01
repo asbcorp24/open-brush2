@@ -32,6 +32,9 @@ public class LanManager : IDataConnectionHandler {
     public Quaternion localRotation;
     public float size;
     public Vector3 extents;
+    public Color color;
+    public float alpha;
+    public bool wireframe;
     public bool visible;
   }
 
@@ -575,6 +578,13 @@ public class LanManager : IDataConnectionHandler {
     widget.LocalTransform = TrTransform.TRS(
         state.localPosition, state.localRotation, state.size);
     try { widget.Extents = state.extents; } catch { }
+
+    var visual = PrimitiveVisualState.GetOrCreate(widget);
+    visual.Color = state.color == default ? Color.white : state.color;
+    visual.Alpha = state.alpha <= 0f ? 1f : state.alpha;
+    visual.Wireframe = state.wireframe;
+    visual.Apply();
+
     if (state.visible) {
       if (!widget.gameObject.activeSelf) {
         widget.gameObject.SetActive(true);
@@ -587,6 +597,7 @@ public class LanManager : IDataConnectionHandler {
 
   private static PrimitiveState CapturePrimitiveState(StencilWidget widget, string id, bool visible = true) {
     TrTransform xf = widget.LocalTransform;
+    var visual = PrimitiveVisualState.GetOrCreate(widget);
     return new PrimitiveState {
       id = id,
       stencilType = (int)widget.Type,
@@ -594,6 +605,9 @@ public class LanManager : IDataConnectionHandler {
       localRotation = xf.rotation,
       size = xf.scale,
       extents = widget.Extents,
+      color = visual.Color,
+      alpha = visual.Alpha,
+      wireframe = visual.Wireframe,
       visible = visible
     };
   }
@@ -673,6 +687,17 @@ public class LanManager : IDataConnectionHandler {
       if (m_IsHost) Broadcast(packet);
       else SendToServer(packet);
     }
+  }
+
+  public void SyncPrimitiveNow(StencilWidget widget) {
+    if (widget == null || State != ConnectionState.IN_ROOM) return;
+    var marker = EnsurePrimitiveId(widget);
+    var state = CapturePrimitiveState(widget, marker.Id,
+        widget.gameObject.activeSelf && !widget.IsHiding());
+    SendRoomPacket(new Packet {
+      type = "primitive_move",
+      payload = JsonUtility.ToJson(state)
+    });
   }
 
   public int GetPingMilliseconds(int playerId) {
