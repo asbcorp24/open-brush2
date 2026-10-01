@@ -299,7 +299,14 @@ public class LanManager : IDataConnectionHandler {
   }
 
   private void HandleHostPacket(ClientPeer source, Packet packet) {
+    source.LastSeenUtc = DateTime.UtcNow;
     switch (packet.type) {
+      case "pong":
+        if (packet.sentAt > 0) {
+          long now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+          source.PingMs = (int)Math.Max(0, Math.Min(9999, now - packet.sentAt));
+        }
+        break;
       case "rig":
         Broadcast(packet, source.Id);
         QueueRig(packet.playerId, packet.payload);
@@ -325,11 +332,18 @@ public class LanManager : IDataConnectionHandler {
     switch (packet.type) {
       case "welcome":
         m_PlayerCount = packet.playerCount;
+        bool wasReconnect = m_Reconnecting;
+        m_Reconnecting = false;
         m_Local = new LocalTransientData { PlayerId = packet.playerId };
         m_MainThread.Enqueue(() => {
+          ClearRemotePlayersForReconnect();
           SketchMemoryScript.m_Instance?.ClearMemory();
           m_Manager.localPlayerJoined?.Invoke(packet.playerId, m_Local);
+          if (wasReconnect) m_Manager.NotifyLanReconnected();
         });
+        break;
+      case "ping":
+        SendToServer(new Packet { type = "pong", sentAt = packet.sentAt });
         break;
       case "player_joined":
         if (m_Local == null || packet.playerId != m_Local.PlayerId)
@@ -375,6 +389,63 @@ public class LanManager : IDataConnectionHandler {
         m_MainThread.Enqueue(() => ApplyColocation(packet.payload));
         break;
     }
+  }
+
+  private void BeginReconnect(string reason) {
+    if (m_Reconnecting || m_ManualDisconnect || m_IsHost) return;
+    m_Reconnecting = true;
+    LastError = "[LAN] Connection lost: " + reason;
+    m_MainThread.Enqueue(() => m_Manager.NotifyLanReconnecting(LastError));
+    _ = Task.Run(ReconnectLoopAsync);
+  }
+
+  private async Task ReconnectLoopAsync() {
+    for (int attempt = 1; attempt <= 6 && !m_ManualDisconnect; attempt++) {
+      try {
+        var endpoint = await DiscoverHostAsync(m_Room, m_Cts.Token);
+        if (endpoint == null) {
+          await Task.Delay(1000);
+          continue;
+        }
+
+        try { m_ServerStream?.Close(); } catch { }
+        try { m_ServerClient?.Close(); } catch { }
+
+        m_ServerClient = new TcpClient();
+        m_ServerClient.NoDelay = true;
+        await m_ServerClient.ConnectAsync(endpoint.Address, endpoint.Port);
+        m_ServerStream = m_ServerClient.GetStream();
+
+        SendToServer(new Packet {
+          type = "hello",
+          room = m_Room,
+          nickname = string.IsNullOrWhiteSpace(UserInfo.Nickname) ? "VIVE" : UserInfo.Nickname,
+          payload = UserInfo.UserId
+        });
+
+        m_ReadTask = Task.Run(() => ReadServerLoop(m_Cts.Token));
+        return;
+      } catch {
+        if (!m_ManualDisconnect) await Task.Delay(1000);
+      }
+    }
+
+    if (!m_ManualDisconnect) {
+      m_Reconnecting = false;
+      LastError = "[LAN] Unable to reconnect to room " + m_Room + ".";
+      m_MainThread.Enqueue(() => {
+        m_Manager.NotifyLanConnectionFailed(LastError);
+        Disconnected?.Invoke();
+      });
+    }
+  }
+
+  private void ClearRemotePlayersForReconnect() {
+    if (m_Manager.m_RemotePlayers == null) return;
+    foreach (var player in m_Manager.m_RemotePlayers.List.ToArray()) {
+      if (player?.PlayerGameObject != null) UnityEngine.Object.Destroy(player.PlayerGameObject);
+    }
+    m_Manager.m_RemotePlayers.ClearList();
   }
 
   private void QueueRig(int playerId, string payload) {
@@ -468,17 +539,54 @@ public class LanManager : IDataConnectionHandler {
     }
 
     if (State != ConnectionState.IN_ROOM || m_Local == null) return;
-    if (Time.unscaledTime < m_NextRigSend) return;
-    m_NextRigSend = Time.unscaledTime + 0.05f;
 
-    var packet = new Packet {
-      type = "rig",
-      playerId = m_Local.PlayerId,
-      payload = JsonUtility.ToJson(m_Local.Data)
-    };
+    if (m_IsHost && Time.unscaledTime >= m_NextHeartbeat) {
+      m_NextHeartbeat = Time.unscaledTime + 1f;
+      long nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+      Broadcast(new Packet { type = "ping", sentAt = nowMs });
+      DropTimedOutPeers();
+    }
 
-    if (m_IsHost) Broadcast(packet);
-    else SendToServer(packet);
+    if (Time.unscaledTime >= m_NextRigSend) {
+      m_NextRigSend = Time.unscaledTime + 0.05f;
+      var packet = new Packet {
+        type = "rig",
+        playerId = m_Local.PlayerId,
+        payload = JsonUtility.ToJson(m_Local.Data)
+      };
+
+      if (m_IsHost) Broadcast(packet);
+      else SendToServer(packet);
+    }
+  }
+
+  public int GetPingMilliseconds(int playerId) {
+    if (!m_IsHost) return -1;
+    lock (m_PeersLock) {
+      return m_Peers.TryGetValue(playerId, out var peer) ? peer.PingMs : -1;
+    }
+  }
+
+  public string GetConnectionQuality(int playerId) {
+    int ping = GetPingMilliseconds(playerId);
+    if (ping < 0) return "connecting";
+    if (ping <= 30) return "excellent";
+    if (ping <= 80) return "good";
+    if (ping <= 160) return "unstable";
+    return "poor";
+  }
+
+  private void DropTimedOutPeers() {
+    List<ClientPeer> stale;
+    lock (m_PeersLock) {
+      stale = m_Peers.Values
+          .Where(p => p.LastSeenUtc != default &&
+              (DateTime.UtcNow - p.LastSeenUtc).TotalSeconds > 6)
+          .ToList();
+    }
+    foreach (var peer in stale) {
+      try { peer.Client.Close(); } catch { }
+    }
   }
 
   public int GetPlayerCount() => Math.Max(1, m_PlayerCount);
@@ -598,6 +706,8 @@ public class LanManager : IDataConnectionHandler {
 
   private Task<bool> DisconnectInternal(bool returnToLobby) {
     try {
+      m_ManualDisconnect = true;
+      m_Reconnecting = false;
       m_Cts?.Cancel();
       try { m_ServerStream?.Close(); } catch { }
       try { m_ServerClient?.Close(); } catch { }
