@@ -32,6 +32,11 @@ public class DesktopMultiplayerObserver : MonoBehaviour {
   private Button m_AllDrawButton;
   private Button m_MuteAllButton;
   private Button m_UnmuteAllButton;
+  private Button m_AllVrButton;
+  private Button m_AllAr25Button;
+  private Button m_AllAr50Button;
+  private Button m_AllAr75Button;
+  private Button m_AllAr100Button;
 
   private Transform m_PlayerRowsRoot;
   private readonly List<GameObject> m_PlayerRows = new List<GameObject>();
@@ -336,6 +341,43 @@ public class DesktopMultiplayerObserver : MonoBehaviour {
     RefreshUi();
   }
 
+  public void SetAllVr() {
+    var manager = MultiplayerManager.m_Instance;
+    if (!CanAdmin(manager)) return;
+    manager.SetAllMixedReality(false, 0f);
+    SetStatus("All VIVE headsets switched to VR.");
+    RefreshUi();
+  }
+
+  public void SetAllAr25() { SetAllAr(0.25f); }
+  public void SetAllAr50() { SetAllAr(0.50f); }
+  public void SetAllAr75() { SetAllAr(0.75f); }
+  public void SetAllAr100() { SetAllAr(1.00f); }
+
+  private void SetAllAr(float amount) {
+    var manager = MultiplayerManager.m_Instance;
+    if (!CanAdmin(manager)) return;
+    manager.SetAllMixedReality(true, amount);
+    SetStatus("All VIVE headsets switched to AR " +
+        Mathf.RoundToInt(amount * 100f) + "%.");
+    RefreshUi();
+  }
+
+  private void TogglePlayerMixedReality(int playerId) {
+    var manager = MultiplayerManager.m_Instance;
+    if (!CanAdmin(manager)) return;
+
+    bool isAr = manager.GetPlayerMixedRealityEnabled(playerId);
+    if (isAr) {
+      manager.SetPlayerMixedReality(playerId, false, 0f);
+      SetStatus("Player " + playerId + " switched to VR.");
+    } else {
+      manager.SetPlayerMixedReality(playerId, true, 1f);
+      SetStatus("Player " + playerId + " switched to AR 100%.");
+    }
+    RefreshUi();
+  }
+
   private bool CanAdmin(MultiplayerManager manager) {
     if (manager == null || manager.State != ConnectionState.IN_ROOM) {
       SetStatus("Join a room first.");
@@ -403,6 +445,11 @@ public class DesktopMultiplayerObserver : MonoBehaviour {
     m_AllDrawButton.interactable = isOwner;
     m_MuteAllButton.interactable = isOwner;
     m_UnmuteAllButton.interactable = isOwner;
+    m_AllVrButton.interactable = isOwner;
+    m_AllAr25Button.interactable = isOwner;
+    m_AllAr50Button.interactable = isOwner;
+    m_AllAr75Button.interactable = isOwner;
+    m_AllAr100Button.interactable = isOwner;
 
     if (manager.State == ConnectionState.ERROR) {
       SetStatus("Error: " + (manager.LastError ?? "unknown"));
@@ -453,32 +500,43 @@ public class DesktopMultiplayerObserver : MonoBehaviour {
       rowRect.anchorMin = rowRect.anchorMax = new Vector2(0f, 1f);
       rowRect.pivot = new Vector2(0f, 1f);
       rowRect.anchoredPosition = new Vector2(0f, -y);
-      rowRect.sizeDelta = new Vector2(690f, 38f);
+      rowRect.sizeDelta = new Vector2(890f, 38f);
 
       string name = string.IsNullOrWhiteSpace(player.Nickname)
           ? "Player " + player.PlayerId : player.Nickname;
       int ping = manager.GetLanPingMilliseconds(player.PlayerId);
       string quality = manager.GetLanConnectionQuality(player.PlayerId);
       string network = ping >= 0 ? " • " + ping + " ms • " + quality : " • connecting";
-      var label = CreateLabel(row.transform, name + network, 13, new Vector2(0, -4), new Vector2(210, 30));
+      bool mrEnabled = manager.GetPlayerMixedRealityEnabled(player.PlayerId);
+      float mrAmount = manager.GetPlayerMixedRealityAmount(player.PlayerId);
+      string mrStatus = mrEnabled
+          ? " • AR " + Mathf.RoundToInt(mrAmount * 100f) + "%"
+          : " • VR";
+      var label = CreateLabel(row.transform, name + network + mrStatus,
+          13, new Vector2(0, -4), new Vector2(280, 30));
       label.alignment = TextAnchor.MiddleLeft;
 
       int id = player.PlayerId;
       var draw = CreateButton(row.transform,
           player.m_IsViewOnly ? "Allow draw" : "View only",
-          new Vector2(220, 0), new Vector2(110, 32), () => TogglePlayerViewOnly(id));
+          new Vector2(290, 0), new Vector2(100, 32), () => TogglePlayerViewOnly(id));
       var mute = CreateButton(row.transform,
           player.m_IsMutedForAll ? "Unmute" : "Mute",
-          new Vector2(338, 0), new Vector2(95, 32), () => TogglePlayerMute(id));
+          new Vector2(398, 0), new Vector2(80, 32), () => TogglePlayerMute(id));
       var kick = CreateButton(row.transform, "Kick",
-          new Vector2(441, 0), new Vector2(75, 32), () => KickPlayer(id));
-      var owner = CreateButton(row.transform, "Make owner",
-          new Vector2(524, 0), new Vector2(130, 32), () => TransferOwnership(id));
+          new Vector2(486, 0), new Vector2(65, 32), () => KickPlayer(id));
+      var owner = CreateButton(row.transform, "Owner",
+          new Vector2(559, 0), new Vector2(90, 32), () => TransferOwnership(id));
+      var mr = CreateButton(row.transform,
+          mrEnabled ? "Switch VR" : "Switch AR",
+          new Vector2(657, 0), new Vector2(105, 32),
+          () => TogglePlayerMixedReality(id));
 
       draw.interactable = canAdmin;
       mute.interactable = canAdmin;
       kick.interactable = canAdmin;
       owner.interactable = canAdmin;
+      mr.interactable = canAdmin;
 
       y += 42f;
     }
@@ -528,10 +586,10 @@ public class DesktopMultiplayerObserver : MonoBehaviour {
     panelRect.anchorMax = new Vector2(0f, 1f);
     panelRect.pivot = new Vector2(0f, 1f);
     panelRect.anchoredPosition = new Vector2(18f, -18f);
-    panelRect.sizeDelta = new Vector2(740f, 650f);
+    panelRect.sizeDelta = new Vector2(940f, 760f);
 
     CreateLabel(panel.transform, "OPEN BRUSH — TEACHER OBSERVER", 22,
-        new Vector2(18, -18), new Vector2(700, 32));
+        new Vector2(18, -18), new Vector2(900, 32));
 
     CreateLabel(panel.transform, "Room code", 14,
         new Vector2(18, -60), new Vector2(100, 24));
@@ -573,20 +631,34 @@ public class DesktopMultiplayerObserver : MonoBehaviour {
     m_ClearButton = CreateButton(panel.transform, "Clear strokes",
         new Vector2(548, -282), new Vector2(170, 34), ClearSharedStrokes);
 
-    CreateLabel(panel.transform, "Participants", 16,
+    CreateLabel(panel.transform, "Mixed Reality", 16,
         new Vector2(18, -332), new Vector2(180, 26));
+
+    m_AllVrButton = CreateButton(panel.transform, "VR ALL",
+        new Vector2(18, -362), new Vector2(115, 34), SetAllVr);
+    m_AllAr25Button = CreateButton(panel.transform, "AR 25%",
+        new Vector2(143, -362), new Vector2(115, 34), SetAllAr25);
+    m_AllAr50Button = CreateButton(panel.transform, "AR 50%",
+        new Vector2(268, -362), new Vector2(115, 34), SetAllAr50);
+    m_AllAr75Button = CreateButton(panel.transform, "AR 75%",
+        new Vector2(393, -362), new Vector2(115, 34), SetAllAr75);
+    m_AllAr100Button = CreateButton(panel.transform, "AR 100%",
+        new Vector2(518, -362), new Vector2(125, 34), SetAllAr100);
+
+    CreateLabel(panel.transform, "Participants", 16,
+        new Vector2(18, -412), new Vector2(180, 26));
 
     var rows = CreateUiObject("Player Rows", panel.transform);
     var rowsRect = rows.GetComponent<RectTransform>();
     rowsRect.anchorMin = rowsRect.anchorMax = new Vector2(0f, 1f);
     rowsRect.pivot = new Vector2(0f, 1f);
-    rowsRect.anchoredPosition = new Vector2(18, -366);
-    rowsRect.sizeDelta = new Vector2(690, 250);
+    rowsRect.anchoredPosition = new Vector2(18, -446);
+    rowsRect.sizeDelta = new Vector2(890, 250);
     m_PlayerRowsRoot = rows.transform;
 
     var hint = CreateLabel(panel.transform,
         "F2 — hide/show panel. Autosave every 3 min. VIVE headsets auto-join over Wi-Fi.",
-        12, new Vector2(18, -618), new Vector2(700, 22));
+        12, new Vector2(18, -728), new Vector2(900, 22));
     hint.color = new Color(1f, 1f, 1f, 0.6f);
   }
 
