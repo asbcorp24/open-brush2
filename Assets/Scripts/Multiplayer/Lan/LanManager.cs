@@ -380,6 +380,12 @@ public class LanManager : IDataConnectionHandler {
           ClearRemotePlayersForReconnect();
           SketchMemoryScript.m_Instance?.ClearMemory();
           m_Manager.localPlayerJoined?.Invoke(packet.playerId, m_Local);
+          var mr = VivePassthroughController.Instance;
+          if (mr != null) {
+            ReportLocalMixedRealityState(
+                mr.Mode == ClassroomMrMode.AR,
+                mr.PassthroughAmount);
+          }
           if (wasReconnect) m_Manager.NotifyLanReconnected();
         });
         break;
