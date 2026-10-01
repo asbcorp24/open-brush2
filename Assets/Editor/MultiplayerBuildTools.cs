@@ -3,7 +3,6 @@
 using System.IO;
 using System.Linq;
 using UnityEditor;
-using UnityEditor.Build;
 using UnityEditor.PackageManager;
 using UnityEngine;
 
@@ -14,7 +13,7 @@ public static class MultiplayerBuildTools {
 
   [MenuItem("Open Brush/Multiplayer/Build Windows Observer")]
   public static void BuildWindowsObserver() {
-    if (!ValidatePhotonBeforeBuild()) {
+    if (!ValidateLanBuild(false)) {
       return;
     }
 
@@ -38,7 +37,7 @@ public static class MultiplayerBuildTools {
 
   [MenuItem("Open Brush/Multiplayer/Build VIVE Focus Vision Multiplayer APK")]
   public static void BuildViveFocusVisionMultiplayer() {
-    if (!ValidatePhotonBeforeBuild()) {
+    if (!ValidateLanBuild(true)) {
       return;
     }
 
@@ -61,34 +60,20 @@ public static class MultiplayerBuildTools {
     Debug.Log("[Multiplayer] VIVE Focus Vision multiplayer APK: " + options.Location);
   }
 
-  private static bool ValidatePhotonBeforeBuild() {
-    OpenBrush.Multiplayer.Editor.MultiplayerSetupValidator.ValidateSetup();
+  private static bool ValidateLanBuild(bool requireViveOpenXr) {
+    if (!requireViveOpenXr) {
+      return true;
+    }
 
-    bool fusionFound = FindType("Fusion.NetworkRunner") != null;
-    bool voiceFound = FindType("Photon.Voice.Unity.VoiceConnection") != null;
-    bool hasFusionId = App.Config != null &&
-        App.Config.PhotonFusionSecrets != null &&
-        !string.IsNullOrWhiteSpace(App.Config.PhotonFusionSecrets.ClientId);
-    bool hasVoiceId = App.Config != null &&
-        App.Config.PhotonVoiceSecrets != null &&
-        !string.IsNullOrWhiteSpace(App.Config.PhotonVoiceSecrets.ClientId);
-    bool standaloneDefine = HasDefine(NamedBuildTarget.Standalone, "MP_PHOTON");
-    bool androidDefine = HasDefine(NamedBuildTarget.Android, "MP_PHOTON");
     bool viveOpenXrFound = PackageInfo.GetAllRegisteredPackages()
         .Any(p => p.name == "com.htc.upm.vive.openxr");
 
-    if (!fusionFound || !voiceFound || !hasFusionId || !hasVoiceId ||
-        !standaloneDefine || !androidDefine || !viveOpenXrFound) {
+    if (!viveOpenXrFound) {
       EditorUtility.DisplayDialog(
-          "Multiplayer build is not ready",
-          "Required before build:\n" +
-          "• Photon Fusion 2 SDK\n" +
-          "• Photon Voice 2 SDK\n" +
-          "• Fusion App ID in Secrets.asset\n" +
-          "• Voice App ID in Secrets.asset\n" +
-          "• MP_PHOTON enabled\n" +
-          "• VIVE OpenXR Plugin installed (com.htc.upm.vive.openxr)\n\n" +
-          "Run Open Brush > Multiplayer > Enable Photon Multiplayer after importing the SDKs.",
+          "VIVE Focus Vision build is not ready",
+          "The VIVE OpenXR Plugin is required for the headset build.\n\n" +
+          "Expected package: com.htc.upm.vive.openxr\n\n" +
+          "No Photon, Fusion, Voice or App ID is required for LAN multiplayer.",
           "OK");
       return false;
     }
@@ -96,25 +81,6 @@ public static class MultiplayerBuildTools {
     return true;
   }
 
-  private static bool HasDefine(NamedBuildTarget target, string define) {
-    string symbols = PlayerSettings.GetScriptingDefineSymbols(target);
-    foreach (string symbol in symbols.Split(';')) {
-      if (string.Equals(symbol.Trim(), define, System.StringComparison.Ordinal)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  private static System.Type FindType(string fullName) {
-    foreach (var assembly in System.AppDomain.CurrentDomain.GetAssemblies()) {
-      var type = assembly.GetType(fullName, false);
-      if (type != null) {
-        return type;
-      }
-    }
-    return null;
-  }
 }
 
 } // namespace TiltBrush
