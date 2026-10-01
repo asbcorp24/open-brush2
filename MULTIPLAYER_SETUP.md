@@ -201,3 +201,36 @@ Autosave files are named like:
 `Autosave_583921_2026-10-01_10-15-00.tilt`
 
 Manual **Save sketch** remains available as well.
+
+
+## Primitives panel
+
+A dedicated runtime **PRIMITIVES** panel is now created from the native
+GuideTools panel shell so it behaves like a normal Open Brush VR panel.
+
+Available shapes:
+
+- Cube
+- Sphere
+- Cylinder
+- Cone
+- Pyramid
+- Plane
+- Capsule
+- Ellipsoid
+- Dome
+
+The buttons use the existing Open Brush `StencilWidget` /
+`CreateWidgetCommand` system. The resulting shapes can therefore be grabbed,
+rotated, scaled, undone/redone and saved with the sketch.
+
+LAN classroom synchronization now also transports primitive state:
+
+- creation;
+- move/rotation/scale;
+- visibility/hide;
+- undo/redo resulting state;
+- existing primitives are sent to late joiners.
+
+Each primitive receives a stable `NetworkPrimitiveId` so all clients update the
+same object.
