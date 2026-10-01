@@ -32,7 +32,9 @@ public class PrimitivePropertiesPanelController : MonoBehaviour {
   };
 
   public void Configure() {
-    GetComponent<BasePanel>()?.SetRuntimePanelDescription("PRIMITIVE PROPERTIES");
+    var panel = GetComponent<BasePanel>();
+    panel?.SetRuntimePanelType(BasePanel.PanelType.PrimitiveProperties);
+    panel?.SetRuntimePanelDescription("PRIMITIVE PROPERTIES");
 
     var allButtons = GetComponentsInChildren<BaseButton>(true).ToList();
     StencilButton template = GetComponentsInChildren<StencilButton>(true).FirstOrDefault();
