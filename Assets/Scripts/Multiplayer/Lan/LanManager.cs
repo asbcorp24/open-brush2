@@ -32,6 +32,7 @@ public class LanManager : IDataConnectionHandler {
     public int percentage;
     public int playerCount;
     public int timestamp;
+    public long sentAt;
     public bool flag;
     public string nickname;
     public string room;
@@ -42,6 +43,9 @@ public class LanManager : IDataConnectionHandler {
   private sealed class ClientPeer {
     public int Id;
     public string Nickname;
+    public string UserId;
+    public DateTime LastSeenUtc;
+    public int PingMs = -1;
     public TcpClient Client;
     public NetworkStream Stream;
     public readonly object WriteLock = new object();
@@ -59,6 +63,7 @@ public class LanManager : IDataConnectionHandler {
   private readonly ConcurrentQueue<Action> m_MainThread = new ConcurrentQueue<Action>();
   private readonly Dictionary<int, ClientPeer> m_Peers = new Dictionary<int, ClientPeer>();
   private readonly Dictionary<int, PlayerRigData> m_LastRigData = new Dictionary<int, PlayerRigData>();
+  private readonly Dictionary<string, int> m_KnownPlayerIds = new Dictionary<string, int>();
   private readonly object m_PeersLock = new object();
 
   private CancellationTokenSource m_Cts;
@@ -75,6 +80,10 @@ public class LanManager : IDataConnectionHandler {
   private string m_Room;
   private LocalTransientData m_Local;
   private float m_NextRigSend;
+  private float m_NextHeartbeat;
+  private RoomCreateData m_CurrentRoomData;
+  private bool m_ManualDisconnect;
+  private bool m_Reconnecting;
 
   public event Action Disconnected;
   public ConnectionUserInfo UserInfo { get; set; }
@@ -99,7 +108,11 @@ public class LanManager : IDataConnectionHandler {
   public async Task<bool> JoinRoom(RoomCreateData data) {
     try {
       State = ConnectionState.JOINING_ROOM;
+      m_CurrentRoomData = data;
       m_Room = string.IsNullOrWhiteSpace(data.roomName) ? "000000" : data.roomName.Trim();
+      m_ManualDisconnect = false;
+      m_Reconnecting = false;
+      m_Cts?.Cancel();
       m_Cts = new CancellationTokenSource();
 
       m_IsHost = Application.platform == RuntimePlatform.WindowsPlayer ||
@@ -130,7 +143,8 @@ public class LanManager : IDataConnectionHandler {
       SendToServer(new Packet {
         type = "hello",
         room = m_Room,
-        nickname = string.IsNullOrWhiteSpace(UserInfo.Nickname) ? "VIVE" : UserInfo.Nickname
+        nickname = string.IsNullOrWhiteSpace(UserInfo.Nickname) ? "VIVE" : UserInfo.Nickname,
+        payload = UserInfo.UserId
       });
 
       m_ReadTask = Task.Run(() => ReadServerLoop(m_Cts.Token));
