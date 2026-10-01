@@ -30,6 +30,7 @@ namespace OpenBrush.Multiplayer
         None,
         Colyseus = 1,
         Photon = 2,
+        Lan = 3,
     }
 
     public class MultiplayerManager : MonoBehaviour
@@ -122,6 +123,7 @@ namespace OpenBrush.Multiplayer
         void Awake()
         {
             m_Instance = this;
+            m_RemotePlayers ??= new RemotePlayers();
             if (GetComponent<ManualColocationManager>() == null)
             {
                 gameObject.AddComponent<ManualColocationManager>();
@@ -138,14 +140,14 @@ namespace OpenBrush.Multiplayer
 #if MP_PHOTON
                     m_Manager = new PhotonManager(this);
                     m_Manager.Disconnected += OnConnectionHandlerDisconnected;
-                    if (m_Manager != null) ControllerConsoleScript.m_Instance.AddNewLine("PhotonManager Loaded");
-                    else ControllerConsoleScript.m_Instance.AddNewLine("PhotonManager Not Loaded");
-#endif
-#if MP_PHOTON
                     m_VoiceManager = new PhotonVoiceManager(this);
-                    if (m_VoiceManager != null) ControllerConsoleScript.m_Instance.AddNewLine("PhotonVoiceManager Loaded");
-                    else ControllerConsoleScript.m_Instance.AddNewLine("PhotonVoiceManager Not Loaded");
-#endif 
+#endif
+                    break;
+                case MultiplayerType.Lan:
+                    m_Manager = new LanManager(this);
+                    m_Manager.Disconnected += OnConnectionHandlerDisconnected;
+                    m_VoiceManager = new LanNoVoiceManager();
+                    ControllerConsoleScript.m_Instance?.AddNewLine("LAN multiplayer loaded (offline mode)");
                     break;
                 default:
                     return;
@@ -231,8 +233,9 @@ namespace OpenBrush.Multiplayer
             }
             else State = ConnectionState.IN_ROOM;
 
-            //asing the room name to the current room name
-            RoomCreateData CurrentRoomData = RoomData;
+            // Keep room settings for ownership transfer and teacher controls.
+            CurrentRoomData = RoomData;
+            CurrentRoomName = RoomData.roomName;
 
             return successData & successVoice;
         }
@@ -390,7 +393,7 @@ namespace OpenBrush.Multiplayer
             }
 
             m_Manager.Update();
-            m_VoiceManager.Update();
+            m_VoiceManager?.Update();
 
             // Transmit local player data relative to scene origin
             var headRelativeToScene = App.Scene.AsScene[App.VrSdk.GetVrCamera().transform];
@@ -425,7 +428,7 @@ namespace OpenBrush.Multiplayer
                 },
                 IsRoomOwner = isUserRoomOwner,
                 SceneScale = App.Scene.Pose.scale,
-                isReceivingVoiceTransmission = m_VoiceManager.isTransmitting,
+                isReceivingVoiceTransmission = m_VoiceManager?.isTransmitting ?? false,
                 Nickname = UserInfo.Nickname //TODO: remove from PlayerRigData or encode it and use photon to retrieve the string
             };
 
