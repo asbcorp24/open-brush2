@@ -75,6 +75,7 @@ namespace TiltBrush
                 state.PrimitiveColor = visual.Color;
                 state.PrimitiveAlpha = visual.Alpha;
                 state.PrimitiveWireframe = visual.Wireframe;
+                state.PrimitiveMaterialMode = (int)visual.MaterialMode;
             }
 
             return state;
@@ -95,12 +96,15 @@ namespace TiltBrush
 
                 if (value.PrimitiveColor.HasValue ||
                     value.PrimitiveAlpha.HasValue ||
-                    value.PrimitiveWireframe.HasValue)
+                    value.PrimitiveWireframe.HasValue ||
+                    value.PrimitiveMaterialMode.HasValue)
                 {
                     var visual = PrimitiveVisualState.GetOrCreate(this);
                     if (value.PrimitiveColor.HasValue) visual.Color = value.PrimitiveColor.Value;
                     if (value.PrimitiveAlpha.HasValue) visual.Alpha = value.PrimitiveAlpha.Value;
                     if (value.PrimitiveWireframe.HasValue) visual.Wireframe = value.PrimitiveWireframe.Value;
+                    if (value.PrimitiveMaterialMode.HasValue)
+                        visual.MaterialMode = (PrimitiveMaterialMode)value.PrimitiveMaterialMode.Value;
                     visual.Apply();
                 }
             }
