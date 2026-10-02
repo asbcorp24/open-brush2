@@ -88,6 +88,7 @@ static class BuildTiltBrush
     const string kMenuPluginMono = "Open Brush/Build/Plugin: Mono";
     const string kMenuPluginOpenXr = "Open Brush/Build/Plugin: OpenXR";
     const string kMenuPluginAndroidXr = "Open Brush/Build/Plugin: Android XR";
+    const string kMenuPluginXreal = "Open Brush/Build/Plugin: XREAL Beam Pro";
     const string kMenuPluginZapbox = "Open Brush/Build/Plugin: Zapbox";
     const string kMenuPlatformPref = "Open Brush/Build/Platform";
     const string kMenuPlatformWindows = "Open Brush/Build/Platform: Windows";
@@ -197,6 +198,7 @@ static class BuildTiltBrush
             Menu.SetChecked(kMenuPluginMono, value == XrSdkMode.Monoscopic);
             Menu.SetChecked(kMenuPluginOpenXr, value == XrSdkMode.OpenXR);
             Menu.SetChecked(kMenuPluginAndroidXr, value == XrSdkMode.AndroidXR);
+            Menu.SetChecked(kMenuPluginXreal, value == XrSdkMode.XREAL);
             Menu.SetChecked(kMenuPluginZapbox, value == XrSdkMode.Zapbox);
 
             if (!BuildTargetSupported(value, GuiSelectedBuildTarget))
@@ -418,7 +420,20 @@ static class BuildTiltBrush
         return true;
     }
 
-    [MenuItem(kMenuPluginZapbox, isValidateFunction: false, priority: 113)]
+    [MenuItem(kMenuPluginXreal, isValidateFunction: false, priority: 113)]
+    static void MenuItem_Plugin_Xreal()
+    {
+        GuiSelectedSdk = XrSdkMode.XREAL;
+    }
+
+    [MenuItem(kMenuPluginXreal, isValidateFunction: true)]
+    static bool MenuItem_Plugin_Xreal_Validate()
+    {
+        Menu.SetChecked(kMenuPluginXreal, GuiSelectedSdk == XrSdkMode.XREAL);
+        return BuildTargetSupported(XrSdkMode.XREAL, BuildTarget.Android);
+    }
+
+    [MenuItem(kMenuPluginZapbox, isValidateFunction: false, priority: 114)]
     static void MenuItem_Plugin_Zapbox()
     {
         GuiSelectedSdk = XrSdkMode.Zapbox;
@@ -1726,7 +1741,8 @@ static class BuildTiltBrush
             target,
             tiltOptions.Il2Cpp ? "DISABLE_SYSTEM_AUDIO_CAPTURE" : null,
             tiltOptions.AutoProfile ? "AUTOPROFILE_ENABLED" : null,
-            tiltOptions.XrSdk == XrSdkMode.AndroidXR ? "OPEN_BRUSH_ANDROID_XR" : null))
+            tiltOptions.XrSdk == XrSdkMode.AndroidXR ? "OPEN_BRUSH_ANDROID_XR" : null,
+            tiltOptions.XrSdk == XrSdkMode.XREAL ? "OPEN_BRUSH_XREAL" : null))
         using (var unused4 = new TempHookUpSingletons())
         using (var unused5 = new TempSetScriptingBackend(target, tiltOptions.Il2Cpp))
         using (var unused14 = new TempSetGraphicsApis(tiltOptions))
