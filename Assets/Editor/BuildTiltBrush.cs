@@ -117,6 +117,7 @@ static class BuildTiltBrush
             new KeyValuePair<XrSdkMode, BuildTarget>(XrSdkMode.OpenXR, BuildTarget.iOS),
             new KeyValuePair<XrSdkMode, BuildTarget>(XrSdkMode.AndroidXR, BuildTarget.Android),
             new KeyValuePair<XrSdkMode, BuildTarget>(XrSdkMode.XREAL, BuildTarget.Android),
+            new KeyValuePair<XrSdkMode, BuildTarget>(XrSdkMode.Cardboard, BuildTarget.Android),
 
             // Zapbox
             new KeyValuePair<XrSdkMode, BuildTarget>(XrSdkMode.Zapbox, BuildTarget.iOS),
@@ -1293,6 +1294,33 @@ static class BuildTiltBrush
         }
     }
 
+    static string FindCardboardLoaderTypeName()
+    {
+        try
+        {
+            return AppDomain.CurrentDomain.GetAssemblies()
+                .SelectMany(a =>
+                {
+                    try { return a.GetTypes(); }
+                    catch (ReflectionTypeLoadException ex)
+                    {
+                        return ex.Types.Where(t => t != null);
+                    }
+                })
+                .Where(t => t != null &&
+                    typeof(XRLoader).IsAssignableFrom(t) &&
+                    !t.IsAbstract &&
+                    t.Name.IndexOf("Cardboard", StringComparison.OrdinalIgnoreCase) >= 0 &&
+                    t.Name.IndexOf("Loader", StringComparison.OrdinalIgnoreCase) >= 0)
+                .Select(t => t.FullName)
+                .FirstOrDefault();
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     class TempSetXrPlugin : IDisposable
     {
         List<XRLoader> m_plugins;
@@ -1334,6 +1362,16 @@ static class BuildTiltBrush
                             "XREAL XR Loader was not found. Import the official com.xreal.xr SDK package first.");
                     }
                     targetXrPluginsRequired = new string[] { xrealLoader };
+                    targetSettings.InitManagerOnStart = true;
+                    break;
+                case XrSdkMode.Cardboard:
+                    string cardboardLoader = FindCardboardLoaderTypeName();
+                    if (string.IsNullOrEmpty(cardboardLoader))
+                    {
+                        throw new BuildFailedException(
+                            "Google Cardboard XR Loader was not found. Check com.google.xr.cardboard.");
+                    }
+                    targetXrPluginsRequired = new string[] { cardboardLoader };
                     targetSettings.InitManagerOnStart = true;
                     break;
                 case XrSdkMode.Zapbox:
@@ -1414,6 +1452,7 @@ static class BuildTiltBrush
             switch (tiltOptions.XrSdk)
             {
                 case XrSdkMode.XREAL:
+                case XrSdkMode.Cardboard:
                     targetGraphicsApisRequired = new[]
                     {
                         UnityEngine.Rendering.GraphicsDeviceType.OpenGLES3
