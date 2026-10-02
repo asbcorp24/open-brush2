@@ -48,12 +48,26 @@ public class DesktopMultiplayerObserver : MonoBehaviour {
 
   [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
   private static void Bootstrap() {
-    bool nonVr = App.Config != null && App.Config.m_SdkMode == SdkMode.Monoscopic;
-    if (!nonVr && App.VrSdk != null) {
-      nonVr = !App.VrSdk.IsHmdInitialized();
+    if (Application.platform != RuntimePlatform.WindowsPlayer &&
+        Application.platform != RuntimePlatform.WindowsEditor) {
+      return;
     }
 
-    if (!nonVr || FindFirstObjectByType<DesktopMultiplayerObserver>() != null) {
+    if (FindFirstObjectByType<DesktopMultiplayerObserver>() != null) {
+      return;
+    }
+
+    // AfterSceneLoad may run before App.Config / App.VrSdk are initialized.
+    // Do not dereference XR singletons here. The dedicated observer build is
+    // identified by its build stamp; editor monoscopic mode remains supported.
+    bool observerBuild = App.Config != null &&
+        !string.IsNullOrWhiteSpace(App.Config.m_BuildStamp) &&
+        App.Config.m_BuildStamp.IndexOf(
+            "multiplayer-observer", StringComparison.OrdinalIgnoreCase) >= 0;
+    bool monoscopic = App.Config != null &&
+        App.Config.m_SdkMode == SdkMode.Monoscopic;
+
+    if (!observerBuild && !monoscopic) {
       return;
     }
 
