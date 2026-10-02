@@ -104,6 +104,108 @@ Disable AP/client isolation on the Wi-Fi access point.
 
 ---
 
+## Phone viewer / Google Cardboard mode
+
+A dedicated **view-only Android phone build** is available for ordinary smartphones placed in a Cardboard-compatible viewer.
+
+The phone can:
+
+- join the same offline LAN classroom as VIVE Focus Vision and XREAL/Beam Pro;
+- receive the current shared sketch;
+- receive live strokes and primitive changes;
+- look around using phone head orientation;
+- render the scene stereoscopically through Google Cardboard.
+
+The phone **cannot draw, create/delete primitives, undo/redo, become room owner or modify the shared scene**.
+
+The Teacher Observer reports the device as:
+
+```text
+Phone Viewer • CARDBOARD 3DoF
+```
+
+### Cardboard SDK
+
+The repository includes the official Google Cardboard XR Plugin dependency:
+
+```text
+com.google.xr.cardboard
+v1.35.0
+```
+
+The package source is the official Google repository:
+
+```text
+https://github.com/googlevr/cardboard-xr-plugin.git#v1.35.0
+```
+
+### Build the phone viewer APK
+
+Use:
+
+```text
+Open Brush
+→ Multiplayer
+→ Build Phone Cardboard Viewer APK
+```
+
+Output:
+
+```text
+Builds/Multiplayer/PhoneCardboardViewer/OpenBrushPhoneCardboardViewer.apk
+```
+
+The build target uses:
+
+```text
+Android
+Landscape Left
+Google Cardboard XR Loader
+IL2CPP
+ARM64
+OpenGL ES3
+Minimum Android API 26
+Target Android API 35
+```
+
+Google's current Cardboard Unity setup also requires the Cardboard XR Plugin to
+be enabled under:
+
+```text
+Edit
+→ Project Settings
+→ XR Plug-in Management
+→ Android
+→ Cardboard XR Plugin
+```
+
+For the Cardboard SDK Android Gradle dependencies, follow the official Cardboard
+Unity quickstart if Unity reports missing AndroidX / Vision / Material /
+protobuf dependencies during Gradle build.
+
+### Classroom use
+
+1. Install the APK on an Android phone.
+2. Connect the phone to the same classroom Wi-Fi as the Teacher PC.
+3. Put the phone into a Cardboard-compatible viewer.
+4. Start the Teacher Observer and press **START CLASS**.
+5. Start the phone viewer app.
+6. The phone automatically discovers and joins the classroom as **Phone Viewer**.
+7. The student can turn their head and watch the shared 3D scene, but cannot edit it.
+
+Cardboard is orientation/head-tracking only, so this client is reported as **3DoF**.
+
+The same LAN ports are used:
+
+```text
+UDP 45870
+TCP 45871
+```
+
+No Photon service and no Internet connection are required during classroom use.
+
+---
+
 ## XREAL glasses + Beam Pro
 
 This fork also contains a dedicated Android build path for **XREAL glasses connected to XREAL Beam Pro**.
