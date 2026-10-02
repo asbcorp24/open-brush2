@@ -62,7 +62,12 @@ public class LanAutoJoin : MonoBehaviour {
       string room = await DiscoverAnyRoomAsync(5000);
       if (string.IsNullOrWhiteSpace(room)) return;
 
-      string nickname = PlayerPrefs.GetString("lan.nickname", "VIVE");
+      bool cardboardViewer = App.Config != null &&
+          !string.IsNullOrWhiteSpace(App.Config.m_BuildStamp) &&
+          App.Config.m_BuildStamp.IndexOf(
+              "cardboard-viewer", StringComparison.OrdinalIgnoreCase) >= 0;
+      string defaultNickname = cardboardViewer ? "Phone Viewer" : "VIVE";
+      string nickname = PlayerPrefs.GetString("lan.nickname", defaultNickname);
       var info = manager.UserInfo;
       info.Nickname = nickname;
       manager.UserInfo = info;
@@ -72,7 +77,7 @@ public class LanAutoJoin : MonoBehaviour {
         @private = false,
         maxPlayers = 16,
         silentRoom = true,
-        viewOnlyRoom = false
+        viewOnlyRoom = cardboardViewer
       };
 
       PlayerPrefs.SetString("lan.lastRoom", room);
