@@ -228,6 +228,8 @@ XREAL and VIVE clients can join the same classroom room.
 
 XREAL SDK is distributed by XREAL as a Unity package tarball and is not committed to this repository.
 
+> **Unity version:** XREAL SDK 3.1.0 currently documents Unity 2021.3 LTS, 2022.3 LTS and 6000.0 LTS. The main Open Brush project may move faster than the XREAL-supported editor line. If importing `com.xreal.xr` produces package/compiler errors in a newer Unity 6 editor, use a supported Unity 6000.0 LTS editor for the XREAL build rather than changing XREAL SDK source.
+
 Download the current official **XREAL SDK for Unity 3.1.0** from XREAL Developer, accept the XREAL SDK terms, then in Unity use:
 
 ```text
