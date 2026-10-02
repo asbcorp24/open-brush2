@@ -380,3 +380,39 @@ device-specific meaning:
 
 The common Teacher-PC controls and LAN status reporting remain the same for both
 device families.
+
+
+## Phone Cardboard viewer
+
+A dedicated view-only Android phone client is available for Cardboard-compatible viewers.
+
+Build command:
+
+```text
+Open Brush > Multiplayer > Build Phone Cardboard Viewer APK
+```
+
+Output:
+
+```text
+Builds/Multiplayer/PhoneCardboardViewer/OpenBrushPhoneCardboardViewer.apk
+```
+
+The client uses the official Google Cardboard XR Plugin and joins the same LAN classroom
+as VIVE and XREAL clients. It auto-discovers the Teacher PC, joins as `Phone Viewer`,
+receives the full scene and live updates, and transmits head orientation only.
+
+The Cardboard build is permanently view-only:
+- no drawing;
+- no primitive creation/deletion;
+- no undo/redo;
+- no room ownership;
+- no brush/wand controller dependency.
+
+Teacher Observer reports it as `CARDBOARD 3DoF`.
+
+The build target uses Android landscape, IL2CPP, ARM64, OpenGL ES3, min API 26 and
+target API 35. The build processor automatically injects the AndroidX / Google Vision /
+Material / protobuf Gradle dependencies required by Cardboard.
+
+LAN ports remain UDP 45870 and TCP 45871.
