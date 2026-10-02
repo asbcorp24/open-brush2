@@ -410,42 +410,68 @@ namespace OpenBrush.Multiplayer
             m_Manager.Update();
             m_VoiceManager?.Update();
 
-            // Transmit local player data relative to scene origin
-            var headRelativeToScene = App.Scene.AsScene[App.VrSdk.GetVrCamera().transform];
-            var pointerRelativeToScene = App.Scene.AsScene[PointerManager.m_Instance.MainPointer.transform];
-            var headScale = App.VrSdk.GetVrCamera().transform.localScale;
-            var leftController = InputManager.m_Instance.GetController(InputManager.ControllerName.Brush).transform;
-            var rightController = InputManager.m_Instance.GetController(InputManager.ControllerName.Wand).transform;
-            var leftHandRelativeToScene = App.Scene.AsScene[leftController];
-            var rightHandRelativeToScene = App.Scene.AsScene[rightController];
+            // Transmit local player data relative to scene origin.
+            // Cardboard viewers have head tracking only and no brush/wand controllers.
+            var vrCamera = App.VrSdk?.GetVrCamera();
+            if (vrCamera == null) return;
 
-            var data = new PlayerRigData
+            var headRelativeToScene = App.Scene.AsScene[vrCamera.transform];
+            PlayerRigData data;
+
+            if (IsDedicatedViewerBuild)
             {
-                HeadPosition = headRelativeToScene.translation,
-                HeadRotation = headRelativeToScene.rotation,
-                ToolPosition = pointerRelativeToScene.translation,
-                ToolRotation = pointerRelativeToScene.rotation,
-                LeftHandPosition = leftHandRelativeToScene.translation,
-                LeftHandRotation = leftHandRelativeToScene.rotation,
-                RightHandPosition = rightHandRelativeToScene.translation,
-                RightHandRotation = rightHandRelativeToScene.rotation,
+                data = new PlayerRigData
+                {
+                    HeadPosition = headRelativeToScene.translation,
+                    HeadRotation = headRelativeToScene.rotation,
+                    ToolPosition = headRelativeToScene.translation,
+                    ToolRotation = headRelativeToScene.rotation,
+                    LeftHandPosition = headRelativeToScene.translation,
+                    LeftHandRotation = headRelativeToScene.rotation,
+                    RightHandPosition = headRelativeToScene.translation,
+                    RightHandRotation = headRelativeToScene.rotation,
+                    BrushData = default,
+                    ExtraData = new ExtraData { OculusPlayerId = 0 },
+                    IsRoomOwner = false,
+                    SceneScale = App.Scene.Pose.scale,
+                    isReceivingVoiceTransmission = false,
+                    Nickname = UserInfo.Nickname
+                };
+            }
+            else
+            {
+                var pointerRelativeToScene =
+                    App.Scene.AsScene[PointerManager.m_Instance.MainPointer.transform];
+                var leftController = InputManager.m_Instance
+                    .GetController(InputManager.ControllerName.Brush).transform;
+                var rightController = InputManager.m_Instance
+                    .GetController(InputManager.ControllerName.Wand).transform;
+                var leftHandRelativeToScene = App.Scene.AsScene[leftController];
+                var rightHandRelativeToScene = App.Scene.AsScene[rightController];
 
-                BrushData = new BrushData
+                data = new PlayerRigData
                 {
-                    Color = PointerManager.m_Instance.MainPointer.GetCurrentColor(),
-                    Size = PointerManager.m_Instance.MainPointer.BrushSize01,
-                    Guid = BrushController.m_Instance.ActiveBrush?.m_Guid.ToString(),
-                },
-                ExtraData = new ExtraData
-                {
-                    // Kept at 0 so the networked payload shape is unchanged.
-                    OculusPlayerId = 0,
-                },
-                IsRoomOwner = isUserRoomOwner,
-                SceneScale = App.Scene.Pose.scale,
-                isReceivingVoiceTransmission = m_VoiceManager?.isTransmitting ?? false,
-                Nickname = UserInfo.Nickname //TODO: remove from PlayerRigData or encode it and use photon to retrieve the string
-            };
+                    HeadPosition = headRelativeToScene.translation,
+                    HeadRotation = headRelativeToScene.rotation,
+                    ToolPosition = pointerRelativeToScene.translation,
+                    ToolRotation = pointerRelativeToScene.rotation,
+                    LeftHandPosition = leftHandRelativeToScene.translation,
+                    LeftHandRotation = leftHandRelativeToScene.rotation,
+                    RightHandPosition = rightHandRelativeToScene.translation,
+                    RightHandRotation = rightHandRelativeToScene.rotation,
+                    BrushData = new BrushData
+                    {
+                        Color = PointerManager.m_Instance.MainPointer.GetCurrentColor(),
+                        Size = PointerManager.m_Instance.MainPointer.BrushSize01,
+                        Guid = BrushController.m_Instance.ActiveBrush?.m_Guid.ToString(),
+                    },
+                    ExtraData = new ExtraData { OculusPlayerId = 0 },
+                    IsRoomOwner = isUserRoomOwner,
+                    SceneScale = App.Scene.Pose.scale,
+                    isReceivingVoiceTransmission = m_VoiceManager?.isTransmitting ?? false,
+                    Nickname = UserInfo.Nickname
+                };
+            }
 
 
 
