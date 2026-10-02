@@ -183,10 +183,13 @@ public static class MultiplayerBuildTools {
       return;
     }
 
-    ConfigureXrealAndroidSettings();
+    PrepareXrealBuild();
 
     string root = Path.GetFullPath(Path.Combine(
         Application.dataPath, "..", kBuildRoot, "XrealBeamPro"));
+    if (Directory.Exists(root)) {
+      FileUtil.DeleteFileOrDirectory(root);
+    }
     Directory.CreateDirectory(root);
 
     var options = new BuildTiltBrush.TiltBuildOptions {
@@ -337,11 +340,11 @@ public static class MultiplayerBuildTools {
   }
 
   private static bool ValidateXrealSdk() {
-    bool xrealFound = PackageInfo.GetAllRegisteredPackages()
-        .Any(p => p.name != null &&
-            p.name.StartsWith("com.xreal.xr", StringComparison.OrdinalIgnoreCase));
+    var xrealPackage = PackageInfo.GetAllRegisteredPackages()
+        .FirstOrDefault(p => p.name != null &&
+            p.name.Equals("com.xreal.xr", StringComparison.OrdinalIgnoreCase));
 
-    if (!xrealFound) {
+    if (xrealPackage == null) {
       EditorUtility.DisplayDialog(
           "XREAL Beam Pro build is not ready",
           "Import the official XREAL SDK for Unity first.\n\n" +
@@ -352,7 +355,32 @@ public static class MultiplayerBuildTools {
       return false;
     }
 
+    if (!Application.unityVersion.StartsWith("6000.0.", StringComparison.Ordinal) &&
+        !Application.unityVersion.StartsWith("2022.3.", StringComparison.Ordinal) &&
+        !Application.unityVersion.StartsWith("2021.3.", StringComparison.Ordinal)) {
+      Debug.LogWarning(
+          "[XREAL] Current Unity is " + Application.unityVersion +
+          ". XREAL SDK 3.1.0 officially documents Unity 2021.3 LTS, " +
+          "2022.3 LTS and 6000.0 LTS. If the XREAL package fails to compile, " +
+          "open this project with a supported editor before diagnosing Open Brush code.");
+    }
+
+    Debug.Log("[XREAL] Found package " + xrealPackage.name + " " + xrealPackage.version + ".");
     return true;
+  }
+
+  private static void PrepareXrealBuild() {
+    if (EditorUserBuildSettings.activeBuildTarget != BuildTarget.Android) {
+      bool switched = EditorUserBuildSettings.SwitchActiveBuildTarget(
+          BuildTargetGroup.Android, BuildTarget.Android);
+      if (!switched) {
+        throw new BuildTiltBrush.BuildFailedException(
+            "Could not switch active build target to Android for the XREAL build.");
+      }
+    }
+
+    ConfigureXrealAndroidSettings();
+    AssetDatabase.Refresh();
   }
 
   private static void ConfigureXrealAndroidSettings() {
@@ -365,8 +393,12 @@ public static class MultiplayerBuildTools {
     PlayerSettings.SetGraphicsAPIs(BuildTarget.Android,
         new[] { UnityEngine.Rendering.GraphicsDeviceType.OpenGLES3 });
 
+    SetAndroidPropertyIfAvailable("forceInternetPermission", true);
+    SetAndroidPropertyIfAvailable("optimizedFramePacing", false);
+
     Debug.Log(
-        "[XREAL] Android settings: Portrait, IL2CPP, ARM64, min API 29, OpenGLES3.");
+        "[XREAL] Android settings: Portrait, IL2CPP, ARM64, min API 29, " +
+        "OpenGLES3, INTERNET enabled.");
   }
 
   private static bool ValidateLanBuild(bool requireViveOpenXr) {
