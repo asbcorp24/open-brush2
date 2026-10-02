@@ -20,8 +20,10 @@ public static class MultiplayerBuildTools {
       return;
     }
 
-    string root = Path.GetFullPath(Path.Combine(Application.dataPath, "..", kBuildRoot, "WindowsObserver"));
-    Directory.CreateDirectory(root);
+    string root = Path.GetFullPath(Path.Combine(
+        Application.dataPath, "..", kBuildRoot, "WindowsObserver"));
+
+    PrepareWindowsObserverBuild(root);
 
     var options = new BuildTiltBrush.TiltBuildOptions {
       AutoProfile = false,
@@ -30,12 +32,90 @@ public static class MultiplayerBuildTools {
       XrSdk = XrSdkMode.Monoscopic,
       Location = Path.Combine(root, "OpenBrushObserver.exe"),
       Stamp = "multiplayer-observer",
-      UnityOptions = BuildOptions.None,
+      UnityOptions = BuildOptions.CleanBuildCache,
       Description = "Open Brush Multiplayer Observer"
     };
 
     BuildTiltBrush.DoBuild(options);
     Debug.Log("[Multiplayer] Windows Observer build: " + options.Location);
+  }
+
+  private static void PrepareWindowsObserverBuild(string root) {
+    if (Directory.Exists(root)) {
+      FileUtil.DeleteFileOrDirectory(root);
+    }
+    Directory.CreateDirectory(root);
+
+    if (EditorUserBuildSettings.activeBuildTarget != BuildTarget.StandaloneWindows64) {
+      bool switched = EditorUserBuildSettings.SwitchActiveBuildTarget(
+          BuildTargetGroup.Standalone, BuildTarget.StandaloneWindows64);
+      if (!switched) {
+        throw new BuildTiltBrush.BuildFailedException(
+            "Could not switch active build target to StandaloneWindows64.");
+      }
+    }
+
+    PlayerSettings.SetGraphicsAPIs(
+        BuildTarget.StandaloneWindows64,
+        new[] { UnityEngine.Rendering.GraphicsDeviceType.Direct3D11 });
+
+    RebuildAddressablesForActiveTarget();
+    AssetDatabase.Refresh();
+
+    Debug.Log(
+        "[Multiplayer] Windows Observer prebuild complete: clean output, " +
+        "StandaloneWindows64 active, D3D11 forced, Addressables rebuilt.");
+  }
+
+  private static void RebuildAddressablesForActiveTarget() {
+    try {
+      Type settingsType = AppDomain.CurrentDomain.GetAssemblies()
+          .Select(a => a.GetType(
+              "UnityEditor.AddressableAssets.Settings.AddressableAssetSettings", false))
+          .FirstOrDefault(t => t != null);
+
+      if (settingsType == null) {
+        Debug.LogWarning(
+            "[Multiplayer] Addressables editor API was not found. " +
+            "Unity will use its normal player-build integration.");
+        return;
+      }
+
+      MethodInfo clean = settingsType.GetMethods(
+          BindingFlags.Public | BindingFlags.Static)
+          .FirstOrDefault(m => m.Name == "CleanPlayerContent" &&
+              m.GetParameters().Length == 0);
+      clean?.Invoke(null, null);
+
+      MethodInfo build = settingsType.GetMethods(
+          BindingFlags.Public | BindingFlags.Static)
+          .Where(m => m.Name == "BuildPlayerContent")
+          .OrderBy(m => m.GetParameters().Length)
+          .FirstOrDefault();
+
+      if (build == null) {
+        Debug.LogWarning(
+            "[Multiplayer] Addressables BuildPlayerContent API was not found.");
+        return;
+      }
+
+      ParameterInfo[] parameters = build.GetParameters();
+      object[] args = parameters.Length == 0
+          ? null
+          : parameters.Select(_ => (object)null).ToArray();
+
+      build.Invoke(null, args);
+      Debug.Log(
+          "[Multiplayer] Addressables rebuilt for " +
+          EditorUserBuildSettings.activeBuildTarget + ".");
+    } catch (TargetInvocationException ex) {
+      throw new BuildTiltBrush.BuildFailedException(
+          "Windows Addressables build failed: " +
+          ex.GetBaseException().Message);
+    } catch (Exception ex) {
+      throw new BuildTiltBrush.BuildFailedException(
+          "Windows Addressables preparation failed: " + ex.Message);
+    }
   }
 
   [MenuItem("Open Brush/Multiplayer/Build VIVE Focus Vision Multiplayer APK")]
