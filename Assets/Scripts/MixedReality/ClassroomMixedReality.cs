@@ -7,8 +7,15 @@ namespace OpenBrush.MixedReality {
 /// Chooses XREAL when the active XR loader is XREAL; otherwise uses the VIVE provider.
 /// </summary>
 public static class ClassroomMixedReality {
+  public static bool IsCardboardViewer =>
+      App.Config != null &&
+      !string.IsNullOrWhiteSpace(App.Config.m_BuildStamp) &&
+      App.Config.m_BuildStamp.IndexOf(
+          "cardboard-viewer", System.StringComparison.OrdinalIgnoreCase) >= 0;
+
   public static string ProviderName {
     get {
+      if (IsCardboardViewer) return "CARDBOARD";
       if (XrealBeamProMixedRealityController.IsActiveXrealLoader()) return "XREAL";
       if (VivePassthroughController.Instance != null) return "VIVE";
       return "Unknown";
@@ -51,6 +58,7 @@ public static class ClassroomMixedReality {
 
   public static string TrackingLabel {
     get {
+      if (IsCardboardViewer) return "3DoF";
       if (XrealBeamProMixedRealityController.IsActiveXrealLoader() &&
           XrealBeamProMixedRealityController.Instance != null) {
         return XrealBeamProMixedRealityController.Instance.TrackingModeLabel;
