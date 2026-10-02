@@ -9,6 +9,37 @@ using UnityEngine.UI;
 
 namespace TiltBrush {
 
+public class DesktopMultiplayerObserverBootstrapper : MonoBehaviour {
+  private IEnumerator Start() {
+    float deadline = Time.realtimeSinceStartup + 15f;
+
+    while (App.Config == null && Time.realtimeSinceStartup < deadline) {
+      yield return null;
+    }
+
+    if (App.Config == null) {
+      Debug.LogError("[Observer] App.Config did not initialize within 15 seconds.");
+      Destroy(gameObject);
+      yield break;
+    }
+
+    bool observerBuild =
+        !string.IsNullOrWhiteSpace(App.Config.m_BuildStamp) &&
+        App.Config.m_BuildStamp.IndexOf(
+            "multiplayer-observer", StringComparison.OrdinalIgnoreCase) >= 0;
+    bool monoscopic = App.Config.m_SdkMode == SdkMode.Monoscopic;
+
+    if ((observerBuild || monoscopic) &&
+        FindFirstObjectByType<DesktopMultiplayerObserver>() == null) {
+      var go = new GameObject("Desktop Multiplayer Observer");
+      DontDestroyOnLoad(go);
+      go.AddComponent<DesktopMultiplayerObserver>();
+    }
+
+    Destroy(gameObject);
+  }
+}
+
 /// <summary>
 /// Desktop observer/admin client for the monoscopic build.
 /// Uses the same Photon room and command stream as VR clients.
@@ -53,27 +84,14 @@ public class DesktopMultiplayerObserver : MonoBehaviour {
       return;
     }
 
-    if (FindFirstObjectByType<DesktopMultiplayerObserver>() != null) {
+    if (FindFirstObjectByType<DesktopMultiplayerObserver>() != null ||
+        FindFirstObjectByType<DesktopMultiplayerObserverBootstrapper>() != null) {
       return;
     }
 
-    // AfterSceneLoad may run before App.Config / App.VrSdk are initialized.
-    // Do not dereference XR singletons here. The dedicated observer build is
-    // identified by its build stamp; editor monoscopic mode remains supported.
-    bool observerBuild = App.Config != null &&
-        !string.IsNullOrWhiteSpace(App.Config.m_BuildStamp) &&
-        App.Config.m_BuildStamp.IndexOf(
-            "multiplayer-observer", StringComparison.OrdinalIgnoreCase) >= 0;
-    bool monoscopic = App.Config != null &&
-        App.Config.m_SdkMode == SdkMode.Monoscopic;
-
-    if (!observerBuild && !monoscopic) {
-      return;
-    }
-
-    var go = new GameObject("Desktop Multiplayer Observer");
-    DontDestroyOnLoad(go);
-    go.AddComponent<DesktopMultiplayerObserver>();
+    var bootstrap = new GameObject("Desktop Multiplayer Observer Bootstrap");
+    DontDestroyOnLoad(bootstrap);
+    bootstrap.AddComponent<DesktopMultiplayerObserverBootstrapper>();
   }
 
   private IEnumerator Start() {
