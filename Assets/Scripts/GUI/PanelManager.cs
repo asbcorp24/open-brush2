@@ -634,6 +634,13 @@ namespace TiltBrush
 
         void CreateRuntimePrimitivesPanel()
         {
+            if (App.Config != null &&
+                !string.IsNullOrWhiteSpace(App.Config.m_BuildStamp) &&
+                App.Config.m_BuildStamp.IndexOf(
+                    "cardboard-viewer", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return;
+            }
             PanelData guideData = m_AllPanels.FirstOrDefault(
                 x => x.m_Panel != null &&
                      x.m_Panel.Type == BasePanel.PanelType.GuideTools &&
@@ -670,6 +677,13 @@ namespace TiltBrush
 
         void CreateRuntimePrimitivePropertiesPanel()
         {
+            if (App.Config != null &&
+                !string.IsNullOrWhiteSpace(App.Config.m_BuildStamp) &&
+                App.Config.m_BuildStamp.IndexOf(
+                    "cardboard-viewer", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return;
+            }
             PanelData guideData = m_AllPanels.FirstOrDefault(
                 x => x.m_Panel != null &&
                      x.m_Panel.Type == BasePanel.PanelType.GuideTools &&
@@ -706,6 +720,13 @@ namespace TiltBrush
 
         void CreateRuntimeMixedRealityPanel()
         {
+            if (App.Config != null &&
+                !string.IsNullOrWhiteSpace(App.Config.m_BuildStamp) &&
+                App.Config.m_BuildStamp.IndexOf(
+                    "cardboard-viewer", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return;
+            }
             if (!App.Config.IsMobileHardware)
             {
                 return;
