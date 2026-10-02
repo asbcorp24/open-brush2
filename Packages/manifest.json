@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "com.arloopa.unitysplats": "https://github.com/icosa-mirror/UnitySplats.git#f92eaa2356abf0d1228c6f5fe0144dad803fc1a9",
+    "com.google.xr.cardboard": "https://github.com/googlevr/cardboard-xr-plugin.git#v1.35.0",
     "com.htc.upm.vive.openxr": "2.5.1",
     "com.icosa.open-brush-unity-tools": "https://github.com/icosa-foundation/open-brush-unity-tools.git#upm",
     "com.icosa.unitytinyexr": "https://github.com/icosa-mirror/UnityTinyEXR.git#7d86cd3109a02be80a91846d69c59802dba05665",
