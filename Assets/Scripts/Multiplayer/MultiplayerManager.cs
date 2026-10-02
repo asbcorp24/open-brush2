@@ -104,6 +104,12 @@ namespace OpenBrush.Multiplayer
 
         private bool _isViewOnly;
 
+        public bool IsDedicatedViewerBuild =>
+            App.Config != null &&
+            !string.IsNullOrWhiteSpace(App.Config.m_BuildStamp) &&
+            App.Config.m_BuildStamp.IndexOf(
+                "cardboard-viewer", StringComparison.OrdinalIgnoreCase) >= 0;
+
         [NonSerialized] public bool m_IsAllMutedForMe;
         [NonSerialized] public bool m_IsAllMutedForAll;
 
@@ -111,6 +117,7 @@ namespace OpenBrush.Multiplayer
         {
             get
             {
+                if (IsDedicatedViewerBuild) return true;
                 // If the user is not in a room, then they can't be view only
                 if (State != ConnectionState.IN_ROOM) return false;
                 // Room owners are never in view-only mode
@@ -461,10 +468,19 @@ namespace OpenBrush.Multiplayer
 
         void OnLocalPlayerJoined(int id, ITransientData<PlayerRigData> playerData)
         {
-            // the user is the room owner if is the firt to get in 
-            isUserRoomOwner = m_Manager.GetPlayerCount() == 1 ? true : false;
-            // if not room owner clear scene 
-            if (!isUserRoomOwner) SketchMemoryScript.m_Instance.ClearMemory();
+            // Dedicated Cardboard builds are permanently view-only clients.
+            if (IsDedicatedViewerBuild)
+            {
+                isUserRoomOwner = false;
+                _isViewOnly = true;
+                SketchMemoryScript.m_Instance.ClearMemory();
+            }
+            else
+            {
+                // the user is the room owner if is the first to get in
+                isUserRoomOwner = m_Manager.GetPlayerCount() == 1;
+                if (!isUserRoomOwner) SketchMemoryScript.m_Instance.ClearMemory();
+            }
 
             m_LocalPlayer = playerData;
             m_LocalPlayer.PlayerId = id;
@@ -603,6 +619,7 @@ namespace OpenBrush.Multiplayer
 
         public async void OnCommandPerformed(BaseCommand command)
         {
+            if (IsDedicatedViewerBuild) return;
             if (State == ConnectionState.IN_ROOM)
             {
                 await m_Manager.PerformCommand(command);
@@ -682,6 +699,7 @@ namespace OpenBrush.Multiplayer
 
         public void OnCommandUndo(BaseCommand command)
         {
+            if (IsDedicatedViewerBuild) return;
             if (State == ConnectionState.IN_ROOM)
             {
                 m_Manager.UndoCommand(command);
@@ -690,6 +708,7 @@ namespace OpenBrush.Multiplayer
 
         public void OnCommandRedo(BaseCommand command)
         {
+            if (IsDedicatedViewerBuild) return;
             if (State == ConnectionState.IN_ROOM)
             {
                 m_Manager.RedoCommand(command);
