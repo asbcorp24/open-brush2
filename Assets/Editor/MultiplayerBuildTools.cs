@@ -145,6 +145,38 @@ public static class MultiplayerBuildTools {
     Debug.Log("[Multiplayer] VIVE Focus Vision multiplayer APK: " + options.Location);
   }
 
+  [MenuItem("Open Brush/Multiplayer/Build Phone Cardboard Viewer APK")]
+  public static void BuildPhoneCardboardViewer() {
+    if (!ValidateCardboardSdk()) {
+      return;
+    }
+
+    ConfigureCardboardAndroidSettings();
+
+    string root = Path.GetFullPath(Path.Combine(
+        Application.dataPath, "..", kBuildRoot, "PhoneCardboardViewer"));
+    if (Directory.Exists(root)) {
+      FileUtil.DeleteFileOrDirectory(root);
+    }
+    Directory.CreateDirectory(root);
+
+    var options = new BuildTiltBrush.TiltBuildOptions {
+      AutoProfile = false,
+      Il2Cpp = true,
+      Target = BuildTarget.Android,
+      XrSdk = XrSdkMode.Cardboard,
+      Location = Path.Combine(root, "OpenBrushPhoneCardboardViewer.apk"),
+      Stamp = "multiplayer-cardboard-viewer",
+      UnityOptions = BuildOptions.CleanBuildCache,
+      Description = "Open Brush Phone Cardboard Viewer",
+      AndroidBuildAppBundle = false,
+      AndroidTargetSdkVersion = AndroidSdkVersions.AndroidApiLevel35
+    };
+
+    BuildTiltBrush.DoBuild(options);
+    Debug.Log("[Multiplayer] Phone Cardboard Viewer APK: " + options.Location);
+  }
+
   [MenuItem("Open Brush/Multiplayer/Build XREAL Beam Pro Multiplayer APK")]
   public static void BuildXrealBeamProMultiplayer() {
     if (!ValidateXrealSdk()) {
@@ -251,6 +283,56 @@ public static class MultiplayerBuildTools {
     } catch (Exception ex) {
       Debug.LogWarning("[MR] Automatic passthrough enable failed: " +
           ex.GetBaseException().Message);
+    }
+  }
+
+  private static bool ValidateCardboardSdk() {
+    bool found = PackageInfo.GetAllRegisteredPackages()
+        .Any(p => p.name == "com.google.xr.cardboard");
+
+    if (!found) {
+      EditorUtility.DisplayDialog(
+          "Phone Cardboard Viewer build is not ready",
+          "Google Cardboard XR Plugin is missing.\n\n" +
+          "Expected package: com.google.xr.cardboard\n" +
+          "The repository manifest normally installs v1.35.0 automatically.",
+          "OK");
+      return false;
+    }
+    return true;
+  }
+
+  private static void ConfigureCardboardAndroidSettings() {
+    PlayerSettings.defaultInterfaceOrientation = UIOrientation.LandscapeLeft;
+    PlayerSettings.SetScriptingBackend(
+        BuildTargetGroup.Android, ScriptingImplementation.IL2CPP);
+    PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
+    PlayerSettings.Android.minSdkVersion = AndroidSdkVersions.AndroidApiLevel26;
+    PlayerSettings.Android.targetSdkVersion = AndroidSdkVersions.AndroidApiLevel35;
+    PlayerSettings.SetGraphicsAPIs(
+        BuildTarget.Android,
+        new[] { UnityEngine.Rendering.GraphicsDeviceType.OpenGLES3 });
+
+    SetAndroidPropertyIfAvailable("optimizedFramePacing", false);
+    SetAndroidPropertyIfAvailable("forceInternetPermission", true);
+
+    Debug.Log(
+        "[Cardboard] Android settings: LandscapeLeft, IL2CPP, ARM64, " +
+        "API 26-35, OpenGLES3, LAN Internet permission.");
+  }
+
+  private static void SetAndroidPropertyIfAvailable(string name, object value) {
+    try {
+      Type androidType = typeof(PlayerSettings).GetNestedType(
+          "Android", BindingFlags.Public | BindingFlags.NonPublic);
+      PropertyInfo property = androidType?.GetProperty(
+          name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
+      if (property != null && property.CanWrite) {
+        property.SetValue(null, value);
+      }
+    } catch (Exception ex) {
+      Debug.LogWarning("[Cardboard] Could not set Android property " +
+          name + ": " + ex.Message);
     }
   }
 
